@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-zt&saw658*ku^-x2-%l^djx1g8i+bftln9j*e0woh#bgbcw$&s
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.18.12'] # PONER IP DE TU PC
 
 
 # Application definition
@@ -52,7 +52,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
 ]
-CORS_ALLOWED_ORIGINS = [ "http://localhost:8081" ]
+CORS_ALLOWED_ORIGINS = [ "http://localhost:8081", "exp://192.168.18.12:8081" , "http://192.168.18.12:8000" ] # PONER IP DE TU PC
 
 ROOT_URLCONF = 'config.urls'
 
