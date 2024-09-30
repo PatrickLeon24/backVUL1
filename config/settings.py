@@ -51,7 +51,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
 ]
-CORS_ALLOWED_ORIGINS = [ "http://localhost:8081", "exp://192.168.18.12:8081" , "http://192.168.18.12:8000" ] # PONER IP DE TU PC
+CORS_ALLOWED_ORIGINS = [ "http://localhost:8081", "exp://10.48.201.68:8081" , "http://10.48.201.68:8000" ] # PONER IP DE TU PC
 
 ROOT_URLCONF = 'config.urls'
 
