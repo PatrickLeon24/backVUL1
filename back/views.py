@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .models import Usuario, Cliente  # Asegúrate de importar tu modelo Usuario
+from .models import *  # Asegúrate de importar tu modelo Usuario
 import json
 
 @csrf_exempt
@@ -98,5 +98,61 @@ def registrar_usuario(request):
         except Exception as e:
             print(f"Error: {str(e)}")  # Debugging
             return JsonResponse({'error': 'Error interno del servidor: ' + str(e)}, status=500)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+
+def obtener_planes_recojo(request):
+    if request.method == 'GET':
+        planes = PlanRecojo.objects.all()
+        planes_data = []
+
+        for plan in planes:
+            plan_data = {
+                "id": plan.id,
+                "nombre": plan.nombre,
+                "descripcion": plan.descripcion,
+                "imagen": plan.imagen,
+                "precio": plan.precio,
+                "materiales": plan.materiales.split(','),  # Asumiendo que materiales se guarda como una cadena
+                "frecuencia_recojo": plan.frecuencia_recojo,
+                "cantidad_compostaje": plan.cantidad_compostaje,
+                "puntos_plan": plan.puntos_plan,
+            }
+            planes_data.append(plan_data)
+
+        return JsonResponse(planes_data, safe=False)  # Retorna la lista de planes en formato JSON
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .models import Usuario, ServicioCompostaje
+
+@csrf_exempt
+def obtener_plan_contratado(request, usuario_id):
+    if request.method == 'GET':
+        try:
+            # Obtener el servicio activo del usuario
+            servicio = ServicioCompostaje.objects.get(usuario__id=usuario_id, activo=True)
+            plan = servicio.plan
+
+            # Construir la respuesta
+            plan_data = {
+                "id": plan.id,
+                "nombre": plan.nombre,
+                "descripcion": plan.descripcion,
+                "imagen": plan.imagen,
+                "precio": plan.precio,
+                "materiales": plan.materiales.split(','),  # Asumiendo que materiales se guarda como una cadena
+                "frecuencia_recojo": plan.frecuencia_recojo,
+                "cantidad_compostaje": plan.cantidad_compostaje,
+                "puntos_plan": plan.puntos_plan,
+            }
+
+            return JsonResponse(plan_data, status=200)  # Retorna datos del plan contratado
+
+        except ServicioCompostaje.DoesNotExist:
+            return JsonResponse({'error': 'No se encontró un servicio activo para este usuario.'}, status=404)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
