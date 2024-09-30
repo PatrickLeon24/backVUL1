@@ -23,7 +23,7 @@ class Usuario(models.Model):
     puntaje_acumulado = models.IntegerField()
     cantidad_residuos_acumulados = models.IntegerField(default=0)
     email = models.EmailField(unique=True)
-    contrasena = models.CharField(max_length=30)
+    contrasena = models.CharField(max_length=255)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, null=True)
 
     def iniciar_sesion(self, email, contraseña):
@@ -46,7 +46,9 @@ class Usuario(models.Model):
         self.contrasena = make_password(contrasena)
 
     def verificar_contrasena(self, contrasena):
-        return check_password(contrasena, self.contrasena)
+        print("Contraseña ingresada:", contrasena)  # Debug
+        print("Contraseña almacenada:", self.contrasena)  # Debug
+        return contrasena == self.contrasena  # Comparar directamente
 
     def iniciar_sesion(self, email, contrasena):
         # Lógica para iniciar sesión
