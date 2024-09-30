@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.hashers import make_password, check_password
+import hashlib
 # Create your models here.
 
 # Cliente
@@ -12,35 +13,53 @@ class Cliente(models.Model):
     genero = models.CharField(max_length=10)
 
     def verificar_informacion(self):
-        # Lógica para verificar la información del cliente
-        pass
+        if len(self.DNI) != 8 or not self.DNI.isdigit():
+            raise ValueError("El DNI debe tener 8 caracteres numéricos.")
+        if not self.numero_contacto.isdigit() or len(self.numero_contacto) < 9:
+            raise ValueError("El número de contacto debe tener al menos 9 dígitos y ser numérico.")
+        # Puedes agregar más validaciones aquí según los requisitos de tu aplicación.
+        print("Validación de información del cliente exitosa")  # Debugging
+        return True
 
     def __str__(self):
         return f'{self.nombre} {self.apellido}'
 
 # Usuario (hereda de Cliente)
 class Usuario(models.Model):
-    puntaje_acumulado = models.IntegerField()
+    puntaje_acumulado = models.IntegerField(default=0)
     cantidad_residuos_acumulados = models.IntegerField(default=0)
     email = models.EmailField(unique=True)
     contrasena = models.CharField(max_length=255)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, null=True)
 
-    def iniciar_sesion(self, email, contraseña):
-        # Lógica para iniciar sesión
-        pass
+    def registrar_cuenta(self, email, contrasena, cliente_data):
+        # Verificar si el email ya existe
+        if Usuario.objects.filter(email=email).exists():
+            raise ValueError("El correo electrónico ya está registrado.")
+        
+        # Crear cliente
+        cliente = Cliente.objects.create(**cliente_data)
 
-    def registrar_cuenta(self, email, contraseña):
-        # Lógica para registrar la cuenta
-        pass
+        # Crear usuario con contraseña encriptada
+        usuario = Usuario.objects.create(
+            email=email,
+            contrasena=make_password(contrasena),
+            cliente=cliente,
+            puntaje_acumulado=0,  # Valor inicial
+            cantidad_residuos_acumulados=0  # Valor inicial
+        )
+        return usuario
 
-    def modificar_informacion(self):
-        # Lógica para modificar la información del usuario
-        pass
+    def modificar_informacion(self, cliente_data):
+        # Lógica para modificar la información del cliente
+        for field, value in cliente_data.items():
+            setattr(self.cliente, field, value)
+        self.cliente.save()
 
-    def cambiar_contraseña(self):
+    def cambiar_contrasena(self, nueva_contrasena):
         # Lógica para cambiar la contraseña
-        pass
+        self.set_contrasena(nueva_contrasena)
+        self.save()
 
     def set_contrasena(self, contrasena):
         self.contrasena = make_password(contrasena)
