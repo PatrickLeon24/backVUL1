@@ -42,7 +42,7 @@ class Usuario(models.Model):
         # Crear usuario con contraseña encriptada
         usuario = Usuario.objects.create(
             email=email,
-            contrasena=make_password(contrasena),
+            contrasena=contrasena,
             cliente=cliente,
             puntaje_acumulado=0,  # Valor inicial
             cantidad_residuos_acumulados=0  # Valor inicial
@@ -61,7 +61,7 @@ class Usuario(models.Model):
         self.save()
 
     def set_contrasena(self, contrasena):
-        self.contrasena = make_password(contrasena)
+        self.contrasena = contrasena
 
     def verificar_contrasena(self, contrasena):
         print("Contraseña ingresada:", contrasena)  # Debug
