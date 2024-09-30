@@ -1,0 +1,177 @@
+[
+  {
+    "model": "back.cliente",
+    "pk": 1,
+    "fields": {
+      "nombre": "Juan",
+      "apellido": "Pérez",
+      "direccion": "Av. Los Pinos 123",
+      "numero_contacto": "987654321",
+      "DNI": "45123784",
+      "genero": "hombre"
+    }
+  },
+  {
+    "model": "back.cliente",
+    "pk": 2,
+    "fields": {
+      "nombre": "María",
+      "apellido": "Gómez",
+      "direccion": "Calle de la Paz 456",
+      "numero_contacto": "912345678",
+      "DNI": "72456788",
+      "genero": "hombre"
+    }
+  },
+  {
+    "model": "back.usuario",
+    "pk": 1,
+    "fields": {
+      "puntaje_acumulado": 50,
+      "cantidad_residuos_acumulados": 20,
+      "email": "juan.perez@example.com",
+      "contrasena": "contrasena123",
+      "cliente_id": 1
+    }
+  },
+  {
+    "model": "back.usuario",
+    "pk": 2,
+    "fields": {
+      "puntaje_acumulado": 30,
+      "cantidad_residuos_acumulados": 15,
+      "email": "maria.gomez@example.com",
+      "contrasena": "contrasena456",
+      "cliente_id": 2
+    }
+  },
+  {
+    "model": "back.estadoservicio",
+    "pk": 1,
+    "fields": {
+      "estado": "Activo"
+    }
+  },
+  {
+    "model": "back.estadoservicio",
+    "pk": 2,
+    "fields": {
+      "estado": "Inactivo"
+    }
+  },
+  {
+    "model": "back.planrecojo",
+    "pk": 1,
+    "fields": {
+      "imagen": "url_imagen_plan_1.jpg",
+      "nombre": "Plan Básico",
+      "descripcion": "Plan de recolección básica.",
+      "precio": 30.0,
+      "frecuencia_recojo": 7,
+      "cantidad_compostaje": 10.0,
+      "materiales": "Plástico, Papel",
+      "puntos_plan": 10
+    }
+  },
+  {
+    "model": "back.planrecojo",
+    "pk": 2,
+    "fields": {
+      "imagen": "url_imagen_plan_2.jpg",
+      "nombre": "Plan Avanzado",
+      "descripcion": "Plan de recolección avanzado.",
+      "precio": 50.0,
+      "frecuencia_recojo": 5,
+      "cantidad_compostaje": 15.0,
+      "materiales": "Plástico, Papel, Orgánico",
+      "puntos_plan": 10
+      
+    }
+  },
+  {
+    "model": "back.serviciocompostaje",
+    "pk": 1,
+    "fields": {
+      "fecha_ingreso": "2024-09-01",
+      "fecha_salida": null,
+      "activo": true,
+      "estado": 1,
+      "usuario_id": 1,
+      "plan_id": 1
+    }
+  },
+  {
+    "model": "back.serviciocompostaje",
+    "pk": 2,
+    "fields": {
+      "fecha_ingreso": "2024-09-15",
+      "fecha_salida": null,
+      "activo": true,
+      "estado": 1,
+      "usuario_id": 2,
+      "plan_id": 2
+    }
+  },
+  {
+    "model": "back.pago",
+    "pk": 1,
+    "fields": {
+      "estado": "Completado",
+      "metodo_pago": "Tarjeta de Crédito",
+      "fecha_pago": "2024-09-02",
+      "servicio_id": 1
+    }
+  },
+  {
+    "model": "back.pago",
+    "pk": 2,
+    "fields": {
+      "estado": "Completado",
+      "metodo_pago": "Transferencia",
+      "fecha_pago": "2024-09-16",
+      "servicio_id": 2
+    }
+  },
+  {
+    "model": "back.puntos",
+    "pk": 1,
+    "fields": {
+      "cantidad_de_puntos": 50,
+      "plan_id": 1
+    }
+  },
+  {
+    "model": "back.puntos",
+    "pk": 2,
+    "fields": {
+      "cantidad_de_puntos": 30,
+      "plan_id": 2
+    }
+  },
+  {
+    "model": "back.cupon",
+    "pk": 1,
+    "fields": {
+      "local": "Tienda A",
+      "imagen": "url_imagen_cupon_1.jpg",
+      "costo_puntos": 10,
+      "descripcion": "Descuento en productos",
+      "descuento": 5.0,
+      "puntos_id": 1,
+      "usuario_id": 1
+    }
+  },
+  {
+    "model": "back.cupon",
+    "pk": 2,
+    "fields": {
+      "local": "Tienda B",
+      "imagen": "url_imagen_cupon_2.jpg",
+      "costo_puntos": 15,
+      "descripcion": "Descuento en servicios",
+      "descuento": 10.0,
+      "puntos_id": 2,
+      "usuario_id": 2
+    }
+  }
+]
