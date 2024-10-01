@@ -1,0 +1,86 @@
+[
+    {
+        "model": "back.cliente",
+        "pk": 1,
+        "fields": {
+            "nombre": "Daniel",
+            "apellido": "Taype",
+            "direccion": "Av. Los Olivos 123",
+            "numero_contacto": "987654321",
+            "DNI": "12345678",
+            "genero": "Masculino"
+        }
+    },
+    {
+        "model": "back.usuario",
+        "pk": 1,
+        "fields": {
+            "puntaje_acumulado": 100,
+            "cantidad_residuos_acumulados": 20,
+            "email": "daniel@outlook.com",
+            "contrasena": "123",
+            "cliente": 1
+        }
+    },
+    {
+        "model": "back.planrecojo",
+        "pk": 1,
+        "fields": {
+            "nombre": "Plan Eco",
+            "imagen": "imagen_plan_eco.jpg",
+            "descripcion": "Plan de reciclaje para eco-hogares",
+            "precio": 50.5,
+            "materiales": "papel, plastico, vidrio",
+            "frecuencia_recojo": 7,
+            "cantidad_compostaje": 5.5,
+            "puntos_plan": 50,
+            "usuario": 1
+        }
+    },
+    {
+        "model": "back.cupon",
+        "pk": 1,
+        "fields": {
+            "costo_puntos": 30,
+            "local": "Tienda Verde",
+            "descripcion": "10% de descuento en productos eco-amigables",
+            "descuento": 10.0,
+            "imagen": "cupon_descuento.jpg"
+        }
+    },
+    {
+        "model": "back.gestorcupon",
+        "pk": 1,
+        "fields": {
+            "cupon": 1,
+            "usuario": 1
+        }
+    },
+    {
+        "model": "back.estadoservicio",
+        "pk": 1,
+        "fields": {
+            "estado": "En progreso"
+        }
+    },
+    {
+        "model": "back.pago",
+        "pk": 1,
+        "fields": {
+            "estado": "Completado",
+            "metodo_pago": "Tarjeta",
+            "fecha_pago": "2023-10-01"
+        }
+    },
+    {
+        "model": "back.serviciocompostaje",
+        "pk": 1,
+        "fields": {
+            "fecha_ingreso": "2023-09-15",
+            "fecha_salida": "2023-09-20",
+            "activo": true,
+            "estado": 1,
+            "pago": 1
+        }
+    }
+]

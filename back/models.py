@@ -2,10 +2,18 @@ from django.db import models
 from django.contrib.auth.hashers import make_password, check_password
 # Create your models here.
 
+
+from django.db import models
+
+class Persona(models.Model):
+    nombre = models.CharField(max_length=255)
+    apellido = models.CharField(max_length=255)
+
+    class Meta:
+        abstract = True  # Esta clase no creará una tabla en la base de datos.
+
 # Cliente
-class Cliente(models.Model):
-    nombre = models.CharField(max_length=30)
-    apellido = models.CharField(max_length=30)
+class Cliente(Persona):
     direccion = models.CharField(max_length=100)
     numero_contacto = models.CharField(max_length=15)
     DNI = models.CharField(max_length=10)
@@ -22,6 +30,13 @@ class Cliente(models.Model):
 
     def __str__(self):
         return f'{self.nombre} {self.apellido}'
+
+class Administrador(Persona):
+    # Puedes agregar atributos específicos del administrador si es necesario
+    def verificar_informacion(self):
+        # Lógica para verificar la información del administrador
+        pass
+
 
 # Usuario (hereda de Cliente)
 class Usuario(models.Model):
@@ -75,14 +90,6 @@ class Usuario(models.Model):
             return user
         return None
     
-# Estado de Servicio
-class EstadoServicio(models.Model):
-    estado = models.CharField(max_length=50)
-
-    def actualizar_estado(self):
-        # Lógica para actualizar el estado del servicio
-        pass
-
 # Plan de Recojo
 class PlanRecojo(models.Model):
     nombre = models.CharField(max_length=100)
@@ -93,6 +100,7 @@ class PlanRecojo(models.Model):
     frecuencia_recojo = models.IntegerField()  # Frecuencia en días
     cantidad_compostaje = models.FloatField()
     puntos_plan = models.IntegerField()
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True)
 
     def mostrar_materiales(self):
         # Lógica para mostrar materiales del plan
@@ -100,52 +108,7 @@ class PlanRecojo(models.Model):
 
     def seleccionar_plan(self):
         # Lógica para seleccionar el plan
-        pass
-
-# ServicioCompostaje
-class ServicioCompostaje(models.Model):
-    fecha_ingreso = models.DateField()
-    fecha_salida = models.DateField(null=True, blank=True)
-    activo = models.BooleanField(default=True)
-    estado = models.ForeignKey(EstadoServicio, on_delete=models.CASCADE)
-    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
-    plan = models.ForeignKey(PlanRecojo, on_delete=models.CASCADE)
-
-    def ver_informacion_servicio(self):
-        # Lógica para mostrar la información del servicio
-        pass
-
-# Pago
-class Pago(models.Model):
-    estado = models.CharField(max_length=50)
-    metodo_pago = models.CharField(max_length=50)
-    fecha_pago = models.DateField()
-    servicio = models.ForeignKey(ServicioCompostaje, on_delete=models.CASCADE)
-
-    def procesar_pago(self):
-        # Lógica para procesar el pago
-        pass
-
-    def actualizar_estado(self):
-        # Lógica para actualizar el estado del pago
-        pass
-
-    def consultar_estado(self):
-        # Lógica para consultar el estado del pago
-        pass
-
-    def mostrar_pago(self):
-        # Lógica para mostrar los detalles del pago
-        pass
-
-# Puntos
-class Puntos(models.Model):
-    cantidad_de_puntos = models.IntegerField()
-    plan = models.ForeignKey(PlanRecojo, on_delete=models.CASCADE)
-
-    def calcular_puntos(self):
-        # Lógica para calcular los puntos
-        pass
+        pass 
 
 # Cupon
 class Cupon(models.Model):
@@ -154,8 +117,6 @@ class Cupon(models.Model):
     descripcion = models.TextField()
     descuento = models.FloatField()
     imagen = models.CharField(max_length=150)
-    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
-    puntos = models.ForeignKey(Puntos, on_delete=models.CASCADE)
 
     def canjear_cupon(self):
         # Lógica para canjear el cupón
@@ -168,3 +129,35 @@ class Cupon(models.Model):
     def ver_qr(self):
         # Lógica para mostrar el código QR del cupón
         pass
+
+class GestorCupon(models.Model):
+    cupon = models.ForeignKey(Cupon,on_delete=models.CASCADE)
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True)
+
+# Estado de Servicio
+class EstadoServicio(models.Model):
+    estado = models.CharField(max_length=50)
+
+    def actualizar_estado(self):
+        # Lógica para actualizar el estado del servicio
+        pass
+
+class Pago(models.Model):
+    estado = models.CharField(max_length=30)
+    metodo_pago = models.CharField(max_length=15)
+    fecha_pago = models.DateField()
+
+# ServicioCompostaje
+class ServicioCompostaje(models.Model):
+    fecha_ingreso = models.DateField()
+    fecha_salida = models.DateField(null=True, blank=True)
+    activo = models.BooleanField(default=True)
+    estado = models.ForeignKey(EstadoServicio, on_delete=models.CASCADE)
+    pago = models.ForeignKey(Pago, on_delete=models.CASCADE, null=True)
+
+    def ver_informacion_servicio(self):
+        # Lógica para mostrar la información del servicio
+        pass
+
+
+
