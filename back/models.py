@@ -103,11 +103,16 @@ class PlanRecojo(models.Model):
     cantidad_compostaje = models.FloatField()
     puntos_plan = models.IntegerField()
 
+    def ver_informacion_plan(self):
+        pass
+    
 # Plan Gestor Plan
 class GestorPlan(models.Model):
     plan = models.ForeignKey(PlanRecojo, on_delete=models.CASCADE)
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
 
+    def seleccionar_plan(self):
+        pass
 # Cupon
 class Cupon(models.Model):
     costo_puntos = models.IntegerField()
@@ -116,21 +121,22 @@ class Cupon(models.Model):
     descuento = models.FloatField()
     imagen = models.CharField(max_length=150)
 
-    def canjear_cupon(self):
-        # Lógica para canjear el cupón
-        pass
-
     def ver_informacion_cupon(self):
         # Lógica para mostrar información del cupón
+        pass
+
+
+class GestorCupon(models.Model):
+    cupon = models.ForeignKey(Cupon,on_delete=models.CASCADE)
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True)
+
+    def canjear_cupon(self):
+        # Lógica para canjear el cupón
         pass
 
     def ver_qr(self):
         # Lógica para mostrar el código QR del cupón
         pass
-
-class GestorCupon(models.Model):
-    cupon = models.ForeignKey(Cupon,on_delete=models.CASCADE)
-    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True)
 
 # Estado de Servicio
 class EstadoServicio(models.Model):
