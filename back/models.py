@@ -96,19 +96,17 @@ class PlanRecojo(models.Model):
     imagen = models.CharField(max_length=150)
     descripcion = models.TextField()
     precio = models.FloatField()
-    materiales = models.CharField(max_length=30)  # Array de materiales
-    frecuencia_recojo = models.IntegerField()  # Frecuencia en días
+    aserrin = models.IntegerField(default=0)
+    baldes = models.IntegerField(default=0)
+    duracion = models.IntegerField(default=0)
+    frecuencia_recojo = models.IntegerField()
     cantidad_compostaje = models.FloatField()
     puntos_plan = models.IntegerField()
-    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True)
 
-    def mostrar_materiales(self):
-        # Lógica para mostrar materiales del plan
-        pass
-
-    def seleccionar_plan(self):
-        # Lógica para seleccionar el plan
-        pass 
+# Plan Gestor Plan
+class GestorPlan(models.Model):
+    plan = models.ForeignKey(PlanRecojo, on_delete=models.CASCADE)
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
 
 # Cupon
 class Cupon(models.Model):
@@ -152,6 +150,7 @@ class ServicioCompostaje(models.Model):
     fecha_ingreso = models.DateField()
     fecha_salida = models.DateField(null=True, blank=True)
     activo = models.BooleanField(default=True)
+    plan = models.ForeignKey(PlanRecojo, on_delete=models.CASCADE, null=True)
     estado = models.ForeignKey(EstadoServicio, on_delete=models.CASCADE)
     pago = models.ForeignKey(Pago, on_delete=models.CASCADE, null=True)
 

@@ -4,7 +4,7 @@ from .models import *  # Asegúrate de importar tu modelo Usuario
 import json
 
 @csrf_exempt
-def prueba(request):
+def inicio_sesion(request):
     if request.method == 'POST':
         print("Request Body:", request.body)  # Imprimir el cuerpo de la solicitud
         data = json.loads(request.body)
@@ -114,7 +114,9 @@ def obtener_planes_recojo(request):
                 "descripcion": plan.descripcion,
                 "imagen": plan.imagen,
                 "precio": plan.precio,
-                "materiales": plan.materiales.split(','),  # Asumiendo que materiales se guarda como una cadena
+                "aserrin" : plan.aserrin,
+                "baldes" : plan.baldes,
+                "duracion" : plan.duracion,
                 "frecuencia_recojo": plan.frecuencia_recojo,
                 "cantidad_compostaje": plan.cantidad_compostaje,
                 "puntos_plan": plan.puntos_plan,

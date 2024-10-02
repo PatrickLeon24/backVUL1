@@ -21,7 +21,11 @@ class UsuarioAdmin(admin.ModelAdmin):
 class PlanRecojoAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'precio', 'frecuencia_recojo', 'cantidad_compostaje', 'puntos_plan')
     search_fields = ('nombre',)
-    list_filter = ('frecuencia_recojo', 'usuario')
+    list_filter = ('frecuencia_recojo',)
+
+@admin.register(GestorPlan)
+class GestorPlanAdmin(admin.ModelAdmin):
+    list_display = ('plan', 'usuario')
 
 @admin.register(Cupon)
 class CuponAdmin(admin.ModelAdmin):
