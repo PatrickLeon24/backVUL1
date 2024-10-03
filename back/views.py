@@ -32,6 +32,13 @@ def inicio_sesion(request):
 
     return JsonResponse({'message': 'Método no permitido'}, status=405)
 
+@csrf_exempt
+def obtener_tipos_usuario(request):
+    if request.method == 'GET':
+        tipos_usuario = Tipo_Usuario.objects.all().values('id', 'tipo')
+        return JsonResponse(list(tipos_usuario), safe=False)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
 
 @csrf_exempt
 def registrar_usuario(request):
@@ -47,10 +54,11 @@ def registrar_usuario(request):
                 'direccion': datos.get('direccion'),
                 'numero_contacto': datos.get('numero_contacto'),
                 'DNI': datos.get('DNI'),
-                'genero': datos.get('genero')
+                'genero': datos.get('genero'),
             }
             email = datos.get('email')
             contrasena = datos.get('contrasena')
+            tipousuario = datos.get('tipo_usuario') 
 
             # Validaciones
             if not email or not contrasena:
@@ -60,8 +68,12 @@ def registrar_usuario(request):
             required_usuario_fields = ['nombre', 'apellido', 'direccion', 'numero_contacto', 'DNI', 'genero']
             for field in required_usuario_fields:
                 if not usuario_data.get(field):
-                    print(f"Falta el campo: {field}")  # Debugging
+                    print(f"Falta el campo: {field}")
                     return JsonResponse({'error': f'El campo {field} es obligatorio para el usuario'}, status=400)
+            try:
+                tipousuario = Tipo_Usuario.objects.get(id=int(tipousuario))  # Convertir el ID a entero
+            except (Tipo_Usuario.DoesNotExist, ValueError):
+                return JsonResponse({'error': 'El tipo de usuario no es válido'}, status=400)
 
             # Crear el usuario
             usuario = Usuario(
@@ -73,8 +85,9 @@ def registrar_usuario(request):
                 numero_contacto=usuario_data.get('numero_contacto'),
                 DNI=usuario_data.get('DNI'),
                 genero=usuario_data.get('genero'),
-                puntaje_acumulado=0,  # Valor inicial
-                cantidad_residuos_acumulados=0  # Valor inicial
+                puntaje_acumulado=0,
+                cantidad_residuos_acumulados=0, 
+                tipousuario=tipousuario 
             )
 
             # Validar la información del usuario

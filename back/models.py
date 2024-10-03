@@ -3,7 +3,7 @@ from django.db import models
 
 # Tipo de Usuario
 class Tipo_Usuario(models.Model):
-    tipo = models.CharField(max_length=10)
+    tipo = models.CharField(max_length=15)
 
 # Usuario
 class Usuario(models.Model):
@@ -24,18 +24,8 @@ class Usuario(models.Model):
             raise ValueError("El DNI debe tener 8 caracteres numéricos.")
         if not self.numero_contacto.isdigit() or len(self.numero_contacto) < 9:
             raise ValueError("El número de contacto debe tener al menos 9 dígitos y ser numérico.")
-        # Puedes agregar más validaciones aquí según los requisitos de tu aplicación.
         print("Validación de información del cliente exitosa")  # Debugging
         return True
-
-    def registrar_cuenta(self, cliente_data):
-        # Verificar si el email ya existe
-        if Usuario.objects.filter(email=cliente_data['email']).exists():
-            raise ValueError("El correo electrónico ya está registrado.")
-        
-        # Crear usuario sin encriptar la contraseña
-        usuario = Usuario.objects.create(**cliente_data)
-        return usuario
 
     def modificar_informacion(self, cliente_data):
         # Lógica para modificar la información del cliente
@@ -56,14 +46,6 @@ class Usuario(models.Model):
         print("Contraseña almacenada:", self.contrasena)  # Debug
         return contrasena == self.contrasena  # Comparar directamente
 
-    def iniciar_sesion(self, email, contrasena):
-        # Lógica para iniciar sesión
-        user = Usuario.objects.filter(email=email).first()
-        if user and user.verificar_contrasena(contrasena):
-            return user
-        return None
-
-
     def __str__(self):
         return f'{self.nombre} {self.apellido}'
    
@@ -76,7 +58,6 @@ class Cupon(models.Model):
     imagen = models.CharField(max_length=150)
 
     def ver_informacion_cupon(self):
-        # Lógica para mostrar información del cupón
         pass
 
 # Trayectoria
@@ -121,7 +102,6 @@ class Recojo(models.Model):
     trayectoria = models.ForeignKey(Trayectoria, on_delete=models.CASCADE, null=True)
 
     def ver_informacion_servicio(self):
-        # Lógica para mostrar la información del servicio
         pass
 
 

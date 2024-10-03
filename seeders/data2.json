@@ -8,7 +8,7 @@
   },
   {
     "model": "back.tipo_usuario",
-    "pk": 1,
+    "pk": 2,
     "fields": {
         "tipo": "Administrador"
     }
