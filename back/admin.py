@@ -1,52 +1,52 @@
 from django.contrib import admin
-from .models import*
+from .models import *
 
-@admin.register(Cliente)
-class ClienteAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'apellido', 'direccion', 'DNI', 'numero_contacto', 'genero')
-    search_fields = ('nombre', 'apellido', 'DNI')
-    list_filter = ('genero',)
+# Registro del modelo Tipo_Usuario
+@admin.register(Tipo_Usuario)
+class TipoUsuarioAdmin(admin.ModelAdmin):
+    list_display = ('id', 'tipo')
+    search_fields = ('tipo',)
 
-@admin.register(Administrador)
-class AdministradorAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'apellido')
-
+# Registro del modelo Usuario
 @admin.register(Usuario)
 class UsuarioAdmin(admin.ModelAdmin):
-    list_display = ('email', 'puntaje_acumulado', 'cantidad_residuos_acumulados', 'cliente')
-    search_fields = ('email',)
-    list_filter = ('cliente',)
+    list_display = ('id', 'nombre', 'apellido', 'email', 'cantidad_residuos_acumulados', 'puntaje_acumulado')
+    search_fields = ('nombre', 'apellido', 'email')
+    list_filter = ('genero',)
 
-@admin.register(PlanRecojo)
-class PlanRecojoAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'precio', 'frecuencia_recojo', 'cantidad_compostaje', 'puntos_plan')
-    search_fields = ('nombre',)
-    list_filter = ('frecuencia_recojo',)
+# Registro del modelo Cupon
+@admin.register(Cupon)
+class CuponAdmin(admin.ModelAdmin):
+    list_display = ('id', 'local', 'descripcion', 'costo_puntos', 'descuento')
+    search_fields = ('local', 'descripcion')
+
+# Registro del modelo Trayectoria
+@admin.register(Trayectoria)
+class TrayectoriaAdmin(admin.ModelAdmin):
+    list_display = ('id', 'estado', 'fecha_fin')
+    search_fields = ('estado',)
+
+# Registro del modelo Pago
+@admin.register(Pago)
+class PagoAdmin(admin.ModelAdmin):
+    list_display = ('id', 'estado', 'metodo_pago', 'fecha_pago')
+    search_fields = ('estado', 'metodo_pago')
+
+# Registro del modelo Plan
+@admin.register(Plan)
+class PlanAdmin(admin.ModelAdmin):
+    list_display = ('id', 'nombre', 'precio', 'frecuencia_recojo', 'puntos_plan')
+    search_fields = ('nombre', 'descripcion')
+    list_filter = ('duracion',)
 
 @admin.register(GestorPlan)
 class GestorPlanAdmin(admin.ModelAdmin):
-    list_display = ('plan', 'usuario')
+    list_display = ('id', 'usuario', 'plan', 'pago')
+    search_fields = ('usuario__email', 'plan__nombre')
 
-@admin.register(Cupon)
-class CuponAdmin(admin.ModelAdmin):
-    list_display = ('local', 'descripcion', 'descuento', 'costo_puntos')
-    search_fields = ('local', 'descripcion')
-    list_filter = ('descuento',)
-
-@admin.register(GestorCupon)
-class GestorCuponAdmin(admin.ModelAdmin):
-    list_display = ('cupon', 'usuario')
-
-@admin.register(EstadoServicio)
-class EstadoServicioAdmin(admin.ModelAdmin):
-    list_display = ('estado',)
-
-@admin.register(Pago)
-class PagoAdmin(admin.ModelAdmin):
-    list_display = ('estado', 'metodo_pago', 'fecha_pago')
-    list_filter = ('estado', 'metodo_pago')
-
-@admin.register(ServicioCompostaje)
-class ServicioCompostajeAdmin(admin.ModelAdmin):
-    list_display = ('fecha_ingreso', 'fecha_salida', 'activo', 'estado', 'pago')
-    list_filter = ('activo', 'estado')
+# Registro del modelo Recojo
+@admin.register(Recojo)
+class RecojoAdmin(admin.ModelAdmin):
+    list_display = ('id', 'fecha_ingreso', 'fecha_salida', 'activo', 'plan', 'trayectoria')
+    list_filter = ('activo',)
+    search_fields = ('fecha_ingreso', 'fecha_salida')

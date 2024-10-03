@@ -1,31 +1,60 @@
 [
-    {
-        "model": "back.cliente",
-        "pk": 1,
-        "fields": {
-            "nombre": "Daniel",
-            "apellido": "Taype",
-            "direccion": "Av. Los Olivos 123",
-            "numero_contacto": "987654321",
-            "DNI": "12345678",
-            "genero": "Hombre"
-        }
-    },
-    {
-        "model": "back.usuario",
-        "pk": 1,
-        "fields": {
-            "puntaje_acumulado": 100,
-            "cantidad_residuos_acumulados": 20,
-            "email": "daniel@outlook.com",
-            "contrasena": "123",
-            "cliente": 1
-        }
-    },
-    {
-        "model": "back.planrecojo",
-        "pk": 1,
-        "fields": {
+  {
+      "model": "back.tipo_usuario",
+      "pk": 1,
+      "fields": {
+          "tipo": "Cliente"
+      }
+  },
+  {
+      "model": "back.usuario",
+      "pk": 1,
+      "fields": {
+          "nombre": "Daniel",
+          "apellido": "Taype",
+          "direccion": "Av. Los Olivos 123",
+          "numero_contacto": "987654321",
+          "DNI": "12345678",
+          "genero": "Hombre",
+          "email": "daniel@outlook.com",
+          "contrasena": "123",
+          "cantidad_residuos_acumulados": 20,
+          "puntaje_acumulado": 100,
+          "tipousuario": 1
+      }
+  },
+  {
+      "model": "back.cupon",
+      "pk": 1,
+      "fields": {
+          "costo_puntos": 200,
+          "local": "Supermercado XYZ",
+          "descripcion": "Cupón de descuento del 10% en compras superiores a S/ 100.",
+          "descuento": 10.0,
+          "imagen": "cupon_descuento.png"
+      }
+  },
+  {
+      "model": "back.trayectoria",
+      "pk": 1,
+      "fields": {
+          "estado": "Activo",
+          "fecha_fin": null
+      }
+  },
+  {
+      "model": "back.pago",
+      "pk": 1,
+      "fields": {
+          "estado": "Completado",
+          "metodo_pago": "Tarjeta de crédito",
+          "fecha_pago": "2024-10-01"
+      }
+  },
+  {
+      "model": "back.plan",
+      "pk": 1,
+      "fields": {
           "nombre": "Plan Básico",
           "imagen": "https://irp.cdn-website.com/777d988b/dms3rep/multi/recoleccion-de-basura-programada-seredecom.jpg",
           "descripcion": "Plan de recolección básica.",
@@ -36,45 +65,26 @@
           "frecuencia_recojo": 7,
           "cantidad_compostaje": 10.0,
           "puntos_plan": 100
-        }
-      },
-      {
-        "model": "back.cupon",
-        "pk": 1,
-        "fields": {
-          "costo_puntos": 200,
-          "local": "Supermercado XYZ",
-          "descripcion": "Cupón de descuento del 10% en compras superiores a S/ 100.",
-          "descuento": 10.0,
-          "imagen": "cupon_descuento.png"
-        }
-      },
-      {
-        "model": "back.estadoservicio",
-        "pk": 1,
-        "fields": {
-          "estado": "Activo"
-        }
-      },
-      {
-        "model": "back.pago",
-        "pk": 1,
-        "fields": {
-          "estado": "Completado",
-          "metodo_pago": "Tarjeta de crédito",
-          "fecha_pago": "2024-10-01"
-        }
-      },
-      {
-        "model": "back.serviciocompostaje",
-        "pk": 1,
-        "fields": {
+      }
+  },
+  {
+      "model": "back.gestorplan",
+      "pk": 1,
+      "fields": {
+          "usuario": 1,
+          "plan": 1,
+          "pago": 1
+      }
+  },
+  {
+      "model": "back.recojo",
+      "pk": 1,
+      "fields": {
           "fecha_ingreso": "2024-10-01",
           "fecha_salida": null,
           "activo": true,
           "plan": 1,
-          "estado": 1,
-          "pago": 1
-        }
+          "trayectoria": 1
       }
+  }
 ]

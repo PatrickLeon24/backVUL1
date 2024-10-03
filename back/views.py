@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .models import *  # Asegúrate de importar tu modelo Usuario
+from .models import*
 import json
 
 @csrf_exempt
@@ -18,11 +18,11 @@ def inicio_sesion(request):
                 "id": user.id,
                 "email": user.email,
                 "contrasena": user.contrasena,
-                "nombres": user.cliente.nombre,
-                "apellidos": user.cliente.apellido,
-                "DNI": user.cliente.DNI,
-                "direccion": user.cliente.direccion,
-                "genero": user.cliente.genero,
+                "nombres": user.nombre,
+                "apellidos": user.apellido,
+                "DNI": user.DNI,
+                "direccion": user.direccion,
+                "genero": user.genero,
                 "puntaje_acumulado": user.puntaje_acumulado,
                 "cantidad_residuos_acumulados": user.cantidad_residuos_acumulados,
             }
@@ -40,8 +40,8 @@ def registrar_usuario(request):
             datos = json.loads(request.body.decode('utf-8'))
             print(f"Datos recibidos: {datos}")  # Debugging
 
-            # Extraer datos directamente sin anidación
-            cliente_data = {
+            # Extraer datos directamente
+            usuario_data = {
                 'nombre': datos.get('nombre'),
                 'apellido': datos.get('apellido'),
                 'direccion': datos.get('direccion'),
@@ -56,36 +56,29 @@ def registrar_usuario(request):
             if not email or not contrasena:
                 return JsonResponse({'error': 'Email y contraseña son obligatorios'}, status=400)
 
-            # Validar que el cliente tenga los campos necesarios
-            required_cliente_fields = ['nombre', 'apellido', 'direccion', 'numero_contacto', 'DNI', 'genero']
-            for field in required_cliente_fields:
-                if not cliente_data.get(field):
+            # Validar que el usuario tenga los campos necesarios
+            required_usuario_fields = ['nombre', 'apellido', 'direccion', 'numero_contacto', 'DNI', 'genero']
+            for field in required_usuario_fields:
+                if not usuario_data.get(field):
                     print(f"Falta el campo: {field}")  # Debugging
-                    return JsonResponse({'error': f'El campo {field} es obligatorio para el cliente'}, status=400)
+                    return JsonResponse({'error': f'El campo {field} es obligatorio para el usuario'}, status=400)
 
-            # Crear el cliente
-            cliente = Cliente(
-                nombre=cliente_data.get('nombre'),
-                apellido=cliente_data.get('apellido'),
-                direccion=cliente_data.get('direccion'),
-                numero_contacto=cliente_data.get('numero_contacto'),
-                DNI=cliente_data.get('DNI'),
-                genero=cliente_data.get('genero')
-            )
-
-            # Validar la información del cliente
-            cliente.verificar_informacion()
-
-            # Guardar el cliente en la base de datos
-            cliente.save()
-
-            # Crear el usuario asociado
+            # Crear el usuario
             usuario = Usuario(
                 email=email,
                 contrasena=contrasena,
-                cliente=cliente
+                nombre=usuario_data.get('nombre'),
+                apellido=usuario_data.get('apellido'),
+                direccion=usuario_data.get('direccion'),
+                numero_contacto=usuario_data.get('numero_contacto'),
+                DNI=usuario_data.get('DNI'),
+                genero=usuario_data.get('genero'),
+                puntaje_acumulado=0,  # Valor inicial
+                cantidad_residuos_acumulados=0  # Valor inicial
             )
-            usuario.set_contrasena(contrasena)
+
+            # Validar la información del usuario
+            usuario.verificar_informacion()
 
             # Guardar el usuario en la base de datos
             usuario.save()
@@ -101,10 +94,9 @@ def registrar_usuario(request):
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
-
 def obtener_planes_recojo(request):
     if request.method == 'GET':
-        planes = PlanRecojo.objects.all()
+        planes = Plan.objects.all()  # Asegúrate de que la clase sea Plan
         planes_data = []
 
         for plan in planes:
@@ -114,9 +106,9 @@ def obtener_planes_recojo(request):
                 "descripcion": plan.descripcion,
                 "imagen": plan.imagen,
                 "precio": plan.precio,
-                "aserrin" : plan.aserrin,
-                "baldes" : plan.baldes,
-                "duracion" : plan.duracion,
+                "aserrin": plan.aserrin,
+                "baldes": plan.baldes,
+                "duracion": plan.duracion,
                 "frecuencia_recojo": plan.frecuencia_recojo,
                 "cantidad_compostaje": plan.cantidad_compostaje,
                 "puntos_plan": plan.puntos_plan,
@@ -127,16 +119,12 @@ def obtener_planes_recojo(request):
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from .models import Usuario, ServicioCompostaje
-
 @csrf_exempt
 def obtener_plan_contratado(request, usuario_id):
     if request.method == 'GET':
         try:
             # Obtener el servicio activo del usuario
-            servicio = ServicioCompostaje.objects.get(usuario__id=usuario_id, activo=True)
+            servicio = Recojo.objects.get(usuario__id=usuario_id, activo=True)  # Asegúrate de que el modelo sea Recojo
             plan = servicio.plan
 
             # Construir la respuesta
@@ -146,7 +134,9 @@ def obtener_plan_contratado(request, usuario_id):
                 "descripcion": plan.descripcion,
                 "imagen": plan.imagen,
                 "precio": plan.precio,
-                "materiales": plan.materiales.split(','),  # Asumiendo que materiales se guarda como una cadena
+                "aserrin": plan.aserrin,
+                "baldes": plan.baldes,
+                "duracion": plan.duracion,
                 "frecuencia_recojo": plan.frecuencia_recojo,
                 "cantidad_compostaje": plan.cantidad_compostaje,
                 "puntos_plan": plan.puntos_plan,
@@ -154,7 +144,8 @@ def obtener_plan_contratado(request, usuario_id):
 
             return JsonResponse(plan_data, status=200)  # Retorna datos del plan contratado
 
-        except ServicioCompostaje.DoesNotExist:
+        except Recojo.DoesNotExist:
             return JsonResponse({'error': 'No se encontró un servicio activo para este usuario.'}, status=404)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
+
