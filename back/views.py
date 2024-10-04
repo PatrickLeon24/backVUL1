@@ -162,3 +162,28 @@ def obtener_plan_contratado(request, usuario_id):
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
+def obtener_plan_usuario(request, usuario_id):
+    try:
+        usuario = Usuario.objects.get(id=usuario_id)
+        gestor_plan = GestorPlan.objects.filter(usuario=usuario).first()
+        
+        if gestor_plan and gestor_plan.plan:
+            plan = gestor_plan.plan
+            plan_data = {
+                "id": plan.id,
+                "nombre": plan.nombre,
+                "descripcion": plan.descripcion,
+                "imagen": plan.imagen,
+                "precio": plan.precio,
+                "aserrin": plan.aserrin,
+                "baldes": plan.baldes,
+                "duracion": plan.duracion,
+                "frecuencia_recojo": plan.frecuencia_recojo,
+                "cantidad_compostaje": plan.cantidad_compostaje,
+                "puntos_plan": plan.puntos_plan,
+            }
+            return JsonResponse(plan_data, safe=False)
+        else:
+            return JsonResponse({'error': 'El usuario no tiene un plan contratado.'}, status=404)
+    except Usuario.DoesNotExist:
+        return JsonResponse({'error': 'Usuario no encontrado.'}, status=404)
