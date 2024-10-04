@@ -19,33 +19,6 @@ class Usuario(models.Model):
     puntaje_acumulado = models.IntegerField(default=0)
     tipousuario = models.ForeignKey(Tipo_Usuario, on_delete=models.CASCADE, null=True)
 
-    def verificar_informacion(self):
-        if len(self.DNI) != 8 or not self.DNI.isdigit():
-            raise ValueError("El DNI debe tener 8 caracteres numéricos.")
-        if not self.numero_contacto.isdigit() or len(self.numero_contacto) < 9:
-            raise ValueError("El número de contacto debe tener al menos 9 dígitos y ser numérico.")
-        print("Validación de información del cliente exitosa")  # Debugging
-        return True
-
-    def modificar_informacion(self, cliente_data):
-        # Lógica para modificar la información del cliente
-        for field, value in cliente_data.items():
-            setattr(self.cliente, field, value)
-        self.save()
-
-    def cambiar_contrasena(self, nueva_contrasena):
-        # Lógica para cambiar la contraseña
-        self.set_contrasena(nueva_contrasena)
-        self.save()
-
-    def set_contrasena(self, contrasena):
-        self.contrasena = contrasena
-
-    def verificar_contrasena(self, contrasena):
-        print("Contraseña ingresada:", contrasena)  # Debug
-        print("Contraseña almacenada:", self.contrasena)  # Debug
-        return contrasena == self.contrasena  # Comparar directamente
-
     def __str__(self):
         return f'{self.nombre} {self.apellido}'
    
@@ -57,9 +30,6 @@ class Cupon(models.Model):
     descuento = models.FloatField()
     imagen = models.CharField(max_length=150)
 
-    def ver_informacion_cupon(self):
-        pass
-
 # Trayectoria
 class Trayectoria(models.Model):
     estado = models.CharField(max_length=50)
@@ -69,7 +39,6 @@ class Pago(models.Model):
     estado = models.CharField(max_length=30)
     metodo_pago = models.CharField(max_length=15)
     fecha_pago = models.DateField()
-
 
 # Plan de Recojo
 class Plan(models.Model):
@@ -84,9 +53,6 @@ class Plan(models.Model):
     cantidad_compostaje = models.FloatField()
     puntos_plan = models.IntegerField(default=0)
 
-    def ver_informacion_plan(self):
-        pass
-
 # Gestor de Plan
 class GestorPlan(models.Model):
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
@@ -100,9 +66,6 @@ class Recojo(models.Model):
     activo = models.BooleanField(default=True)
     plan = models.ForeignKey(Plan, on_delete=models.CASCADE, null=True)
     trayectoria = models.ForeignKey(Trayectoria, on_delete=models.CASCADE, null=True)
-
-    def ver_informacion_servicio(self):
-        pass
 
 
 
