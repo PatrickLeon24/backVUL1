@@ -2,6 +2,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .services.usuario_service import UsuarioService
 from .services.plan_service import PlanService
+from .services.cupones_o import CuponesO
 from .models import*
 import json
 
@@ -68,3 +69,10 @@ def obtener_plan_usuario(request, usuario_id):
     else:
         return JsonResponse({'error': 'Método no permitido.'}, status=405)
 
+@csrf_exempt
+def obtener_cupons(request):
+    if request.method == 'GET':
+        cuponesData = CuponesO.ObtenerCupones()
+        return JsonResponse(cuponesData, safe=False)
+    
+    return JsonResponse({'error': 'Método no permitido.'}, status=405)

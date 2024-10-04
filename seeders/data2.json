@@ -34,11 +34,44 @@
       "model": "back.cupon",
       "pk": 1,
       "fields": {
-          "costo_puntos": 200,
-          "local": "Supermercado XYZ",
-          "descripcion": "Cupón de descuento del 10% en compras superiores a S/ 100.",
-          "descuento": 10.0,
-          "imagen": "cupon_descuento.png"
+          "costo_puntos": 300,
+          "local": "Burguer King",
+          "descripcion": "!Aprovecha esta mega promo! Llévate un descuento de 15% por tan solo 300 puntos. Válido para consumir en salón",
+          "descuento": 15.0,
+          "imagen": "https://vidatos.com/wp-content/uploads/burger-king.webp"
+      }
+  },
+  {
+      "model": "back.cupon",
+      "pk": 2 ,
+      "fields": {
+          "costo_puntos": 500,
+          "local": "KFC",
+          "descripcion": "!Aprovecha esta mega promo! Llévate un descuento de 25% por tan solo 500 puntos. Válido para consumir en salón",
+          "descuento": 25.0,
+          "imagen": "https://deliveryenperu.com/wp-content/uploads/2021/11/KFC-Logo.png"
+      }
+  },
+  {
+      "model": "back.cupon",
+      "pk": 3 ,
+      "fields": {
+          "costo_puntos": 400,
+          "local": "Bembos",
+          "descripcion": "!Aprovecha esta mega promo! Llévate un descuento de 20% por tan solo 400 puntos. Válido para consumir en salón",
+          "descuento": 20.0,
+          "imagen": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS035p3ZInM-nb2P8dygx2YMSFY_5XEk69msQ&s"
+      }
+  },
+  {
+      "model": "back.cupon",
+      "pk": 4 ,
+      "fields": {
+          "costo_puntos": 600,
+          "local": "Milagros Spa",
+          "descripcion": "!Aprovecha este descuento! Llévate un descuento de 20% por tan solo 600 puntos. Válido para consumir en salón",
+          "descuento": 20.0,
+          "imagen": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjJQ_A77D3grwtHTjTAVo33GotAv0VGbLooQ&s"
       }
   },
   {
