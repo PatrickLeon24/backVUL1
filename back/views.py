@@ -76,3 +76,27 @@ def obtener_cupons(request):
         return JsonResponse(cuponesData, safe=False)
     
     return JsonResponse({'error': 'Método no permitido.'}, status=405)
+@csrf_exempt
+def guardar_cambio_contrasena(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        email = data.get('email')
+        contrasena_actual = data.get('contrasena_actual')
+        nueva_contrasena = data.get('nueva_contrasena')
+        print(email)
+        print(contrasena_actual)
+        print(nueva_contrasena)
+        # Validar que el usuario existe
+        usuario = UsuarioService.verificar_credenciales(email,contrasena_actual)
+        if not usuario:
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+        # Verificar la contraseña actual
+        # Cambiar la contraseña
+        try:
+            UsuarioService.cambiar_contrasena(email, contrasena_actual, nueva_contrasena)
+            return JsonResponse({'mensaje': 'Contraseña cambiada exitosamente'}, status=200)
+        except Exception as e:
+            return JsonResponse({'error': 'Error al cambiar la contraseña'}, status=500)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
