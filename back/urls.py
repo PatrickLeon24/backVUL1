@@ -8,5 +8,6 @@ urlpatterns = [
     path("planes/<int:usuario_id>/",views.obtener_plan_usuario),
     path("cupones", views.obtener_cupons),
     path('guardar_cambio_contrasena', views.guardar_cambio_contrasena),
-    path('crear_pago', views.crear_pago)
+    path('crear_pago', views.crear_pago),
+    path('guardar_perfil', views.guardar_perfil)
     ]

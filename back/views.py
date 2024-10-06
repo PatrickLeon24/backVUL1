@@ -131,3 +131,32 @@ def crear_pago(request):
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
+@csrf_exempt
+def guardar_perfil(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_id = data.get('id')
+
+            # Verifica que el usuario existe
+            usuario = Usuario.objects.filter(id=user_id).first()
+            if not usuario:
+                return JsonResponse({'error': 'Usuario no encontrado.'}, status=404)
+
+            # Actualiza los campos con los nuevos datos
+            usuario.nombre = data.get('nombres', usuario.nombre)
+            usuario.apellido = data.get('apellidos', usuario.apellido)
+            usuario.DNI = data.get('DNI', usuario.DNI)
+            usuario.direccion = data.get('direccion', usuario.direccion)
+            usuario.numero_contacto = data.get('numero_contacto', usuario.numero_contacto)
+            usuario.email = data.get('email', usuario.email)
+
+            # Guarda los cambios
+            usuario.save()
+
+            return JsonResponse({'mensaje': 'Perfil actualizado correctamente.'}, status=200)
+        
+        except Exception as e:
+            return JsonResponse({'error': f'Error al procesar la solicitud: {str(e)}'}, status=500)
+    
+    return JsonResponse({'error': 'Método no permitido.'}, status=405)
