@@ -14,11 +14,6 @@ class UsuarioService:
         if len(contrasena) < 8: 
             return False
         return True
-    def obtener_usuario_por_email(email):
-        return Usuario.objects.filter(email=email).first()
-    
-   
-    
     
     @staticmethod
     def cambiar_contrasena(email,contrasena, nueva_contrasena):
