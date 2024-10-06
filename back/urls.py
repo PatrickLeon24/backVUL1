@@ -7,5 +7,6 @@ urlpatterns = [
     path("planesRecojo", views.obtener_planes_recojo),
     path("planes/<int:usuario_id>/",views.obtener_plan_usuario),
     path("cupones", views.obtener_cupons),
-     path('guardar_cambio_contrasena', views.guardar_cambio_contrasena)
+    path('guardar_cambio_contrasena', views.guardar_cambio_contrasena),
+    path('crear_pago', views.crear_pago)
     ]

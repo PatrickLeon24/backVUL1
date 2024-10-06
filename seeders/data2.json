@@ -24,7 +24,7 @@
           "DNI": "12345678",
           "genero": "Hombre",
           "email": "daniel@outlook.com",
-          "contrasena": "123",
+          "contrasena": "hola1234",
           "cantidad_residuos_acumulados": 20,
           "puntaje_acumulado": 100,
           "tipousuario": 1
@@ -87,7 +87,7 @@
       "pk": 1,
       "fields": {
           "estado": "Completado",
-          "metodo_pago": "Tarjeta de crédito",
+          "metodo_pago": "Tarjeta",
           "fecha_pago": "2024-10-01"
       }
   },
@@ -98,15 +98,63 @@
           "nombre": "Plan Básico",
           "imagen": "https://irp.cdn-website.com/777d988b/dms3rep/multi/recoleccion-de-basura-programada-seredecom.jpg",
           "descripcion": "Plan de recolección básica.",
-          "precio": 50.0,
-          "aserrin": 2,
+          "precio": 29.0,
+          "aserrin": 1,
           "baldes": 1,
           "duracion": 30,
-          "frecuencia_recojo": 7,
-          "cantidad_compostaje": 10.0,
+          "frecuencia_recojo": 1,
+          "cantidad_compostaje": 1.0,
           "puntos_plan": 100
       }
   },
+  {
+    "model": "back.plan",
+    "pk": 2,
+    "fields": {
+        "nombre": "Plan Intermedio",
+        "imagen": "https://irp.cdn-website.com/777d988b/dms3rep/multi/recoleccion-de-basura-programada-seredecom.jpg",
+        "descripcion": "Plan de recolección intermedia.",
+        "precio": 50.0,
+        "aserrin": 1,
+        "baldes": 1,
+        "duracion": 30,
+        "frecuencia_recojo": 2,
+        "cantidad_compostaje": 2.0,
+        "puntos_plan": 150
+    }
+},
+{
+    "model": "back.plan",
+    "pk": 3,
+    "fields": {
+        "nombre": "Plan Avanzado",
+        "imagen": "https://irp.cdn-website.com/777d988b/dms3rep/multi/recoleccion-de-basura-programada-seredecom.jpg",
+        "descripcion": "Plan de recolección avanzado.",
+        "precio": 69.0,
+        "aserrin": 1,
+        "baldes": 1,
+        "duracion": 30,
+        "frecuencia_recojo": 4,
+        "cantidad_compostaje": 4.0,
+        "puntos_plan": 200
+    }
+},
+{
+    "model": "back.plan",
+    "pk": 4,
+    "fields": {
+        "nombre": "Plan Premium",
+        "imagen": "https://irp.cdn-website.com/777d988b/dms3rep/multi/recoleccion-de-basura-programada-seredecom.jpg",
+        "descripcion": "Plan de recolección premium.",
+        "precio": 89.0,
+        "aserrin": 2,
+        "baldes": 2,
+        "duracion": 30,
+        "frecuencia_recojo": 4,
+        "cantidad_compostaje": 8.0,
+        "puntos_plan": 250
+    }
+},
   {
       "model": "back.gestorplan",
       "pk": 1,

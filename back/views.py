@@ -3,6 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .services.usuario_service import UsuarioService
 from .services.plan_service import PlanService
 from .services.cupones_o import CuponesO
+from .services.pago_service import PagoService
 from .models import*
 import json
 
@@ -103,5 +104,30 @@ def guardar_cambio_contrasena(request):
             return JsonResponse({'mensaje': 'Contraseña cambiada exitosamente'}, status=200)
         except Exception as e:
             return JsonResponse({'error': 'Error al cambiar la contraseña'}, status=500)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+@csrf_exempt
+def crear_pago(request):
+    if request.method == 'POST':
+        # Obtener los datos de la solicitud
+        data = json.loads(request.body)
+        estado = data.get('estado')
+        metodo_pago = data.get('metodo_pago')
+        fecha_pago = data.get('fecha_pago')
+
+        # Validar que los campos no estén vacíos
+        if not estado or not metodo_pago or not fecha_pago:
+            return JsonResponse({'error': 'Faltan campos obligatorios'}, status=400)
+
+        # Crear el pago utilizando el servicio
+        try:
+            nuevo_pago = PagoService.crear_pago(estado, metodo_pago, fecha_pago)
+            return JsonResponse({
+                'mensaje': 'Pago creado exitosamente',
+                'pago_id': nuevo_pago.id
+            }, status=201)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)

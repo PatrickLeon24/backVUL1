@@ -20,8 +20,7 @@ class UsuarioService:
         user = Usuario.objects.filter(email=email, contrasena=contrasena).first()
         if user:
             user.contrasena=nueva_contrasena
-            user.save()
-        
+            user.save()     
         
     @staticmethod
     def obtener_datos_usuario(user):

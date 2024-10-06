@@ -5,6 +5,8 @@ from django.db import models
 class Tipo_Usuario(models.Model):
     tipo = models.CharField(max_length=15)
 
+    def __str__(self):
+        return self.tipo
 # Usuario
 class Usuario(models.Model):
     nombre = models.CharField(max_length=30, null=True)
@@ -13,7 +15,7 @@ class Usuario(models.Model):
     numero_contacto = models.CharField(max_length=15, null=True)
     DNI = models.CharField(max_length=10, null=True)
     genero = models.CharField(max_length=10, null=True)
-    email = models.CharField(max_length=30, null=True)
+    email = models.EmailField(max_length=50, null=True)
     contrasena = models.CharField(max_length=30, null=True)
     cantidad_residuos_acumulados = models.IntegerField(default=0)
     puntaje_acumulado = models.IntegerField(default=0)
@@ -28,22 +30,31 @@ class Cupon(models.Model):
     local = models.CharField(max_length=30)
     descripcion = models.TextField()
     descuento = models.FloatField()
-    imagen = models.CharField(max_length=150)
+    imagen = models.URLField(max_length=200)
 
+    def __str__(self):
+        return f'Cupón de {self.local} - {self.costo_puntos} puntos'
+    
 # Trayectoria
 class Trayectoria(models.Model):
     estado = models.CharField(max_length=50)
     fecha_fin = models.DateField(null=True, blank=True)
 
+    def __str__(self):
+        return self.estado
+    
 class Pago(models.Model):
     estado = models.CharField(max_length=30)
     metodo_pago = models.CharField(max_length=15)
     fecha_pago = models.DateField()
 
+    def __str__(self):
+        return f'{self.metodo_pago} - {self.estado}'
+    
 # Plan de Recojo
 class Plan(models.Model):
     nombre = models.CharField(max_length=100)
-    imagen = models.CharField(max_length=150)
+    imagen = models.URLField(max_length=200)
     descripcion = models.TextField()
     precio = models.FloatField()
     aserrin = models.IntegerField(default=0)
@@ -53,12 +64,18 @@ class Plan(models.Model):
     cantidad_compostaje = models.FloatField()
     puntos_plan = models.IntegerField(default=0)
 
+    def __str__(self):
+        return self.nombre
+    
 # Gestor de Plan
 class GestorPlan(models.Model):
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
     plan = models.ForeignKey(Plan, on_delete=models.CASCADE)
     pago = models.ForeignKey(Pago, on_delete=models.CASCADE)
 
+    def __str__(self):
+        return f'{self.usuario} - {self.plan}'
+    
 # Recojo
 class Recojo(models.Model):
     fecha_ingreso = models.DateField()
@@ -66,6 +83,7 @@ class Recojo(models.Model):
     activo = models.BooleanField(default=True)
     plan = models.ForeignKey(Plan, on_delete=models.CASCADE, null=True)
     trayectoria = models.ForeignKey(Trayectoria, on_delete=models.CASCADE, null=True)
-
-
+    
+    def __str__(self):
+        return f'Recojo {self.plan} - {self.fecha_ingreso}'
 
