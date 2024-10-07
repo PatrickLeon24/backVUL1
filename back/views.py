@@ -4,6 +4,7 @@ from .services.usuario_service import UsuarioService
 from .services.plan_service import PlanService
 from .services.cupones_o import CuponesO
 from .services.pago_service import PagoService
+from .services.gestor_plan_service import GestorPlanService
 from .models import*
 import json
 
@@ -131,12 +132,13 @@ def crear_pago(request):
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
+
 @csrf_exempt
 def guardar_perfil(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            user_id = data.get('id')
+            user_id = data.get('usuario_id')
 
             # Verifica que el usuario existe
             usuario = Usuario.objects.filter(id=user_id).first()
@@ -160,3 +162,30 @@ def guardar_perfil(request):
             return JsonResponse({'error': f'Error al procesar la solicitud: {str(e)}'}, status=500)
     
     return JsonResponse({'error': 'Método no permitido.'}, status=405)
+
+@csrf_exempt
+def crear_gestor_plan(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+
+        usuario_id = data.get('usuario_id')
+        plan_id = data.get('plan_id')
+        pago_id = data.get('pago_id')
+
+        print(usuario_id, plan_id, pago_id)
+        # Verificar que los campos no estén vacíos
+        if not usuario_id or not plan_id or not pago_id:
+            return JsonResponse({'error': 'Faltan campos obligatorios'}, status=400)
+
+        try:
+            # Llamar al servicio para crear el GestorPlan
+            gestor_plan = GestorPlanService.crear_gestor_plan(usuario_id, plan_id, pago_id)
+            return JsonResponse({
+                'mensaje': 'GestorPlan creado exitosamente',
+                'gestor_plan_id': gestor_plan.id
+            }, status=201)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)

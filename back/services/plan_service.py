@@ -8,7 +8,7 @@ class PlanService:
         planes_data = []
         for plan in planes:
             plan_data = {
-                "id": plan.id,
+                "plan_id": plan.id,
                 "nombre": plan.nombre,
                 "descripcion": plan.descripcion,
                 "imagen": plan.imagen,
@@ -32,7 +32,7 @@ class PlanService:
             if gestor_plan and gestor_plan.plan:
                 plan = gestor_plan.plan
                 plan_data = {
-                    "id": plan.id,
+                    "plan_id": plan.id,
                     "nombre": plan.nombre,
                     "descripcion": plan.descripcion,
                     "imagen": plan.imagen,

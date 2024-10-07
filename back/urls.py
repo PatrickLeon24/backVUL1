@@ -9,5 +9,6 @@ urlpatterns = [
     path("cupones", views.obtener_cupons),
     path('guardar_cambio_contrasena', views.guardar_cambio_contrasena),
     path('crear_pago', views.crear_pago),
-    path('guardar_perfil', views.guardar_perfil)
+    path('guardar_perfil', views.guardar_perfil),
+    path('gestor_plan', views.crear_gestor_plan)
     ]

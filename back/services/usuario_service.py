@@ -25,7 +25,7 @@ class UsuarioService:
     @staticmethod
     def obtener_datos_usuario(user):
         return {
-            "id": user.id,
+            "usuario_id": user.id,
             "email": user.email,
             "contrasena": user.contrasena,
             "nombres": user.nombre,
