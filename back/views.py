@@ -138,7 +138,7 @@ def guardar_perfil(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            user_id = data.get('usuario_id')
+            user_id = data.get('id')
 
             # Verifica que el usuario existe
             usuario = Usuario.objects.filter(id=user_id).first()
