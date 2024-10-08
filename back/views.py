@@ -172,21 +172,34 @@ def crear_gestor_plan(request):
         plan_id = data.get('plan_id')
         pago_id = data.get('pago_id')
 
-        print(usuario_id, plan_id, pago_id)
         # Verificar que los campos no estén vacíos
         if not usuario_id or not plan_id or not pago_id:
             return JsonResponse({'error': 'Faltan campos obligatorios'}, status=400)
 
         try:
-            # Llamar al servicio para crear el GestorPlan
-            gestor_plan = GestorPlanService.crear_gestor_plan(usuario_id, plan_id, pago_id)
+            # Buscar si ya existe un GestorPlan para ese usuario
+            gestor_plan = GestorPlan.objects.filter(usuario_id=usuario_id).first()
+
+            if gestor_plan:
+                # Si existe, actualiza el plan_id y el pago_id
+                gestor_plan.plan_id = plan_id
+                gestor_plan.pago_id = pago_id
+                gestor_plan.save()
+
+                mensaje = 'GestorPlan actualizado exitosamente'
+            else:
+                # Si no existe, crea uno nuevo
+                gestor_plan = GestorPlanService.crear_gestor_plan(usuario_id, plan_id, pago_id)
+                mensaje = 'GestorPlan creado exitosamente'
+
             return JsonResponse({
-                'mensaje': 'GestorPlan creado exitosamente',
+                'mensaje': mensaje,
                 'gestor_plan_id': gestor_plan.id
             }, status=201)
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
