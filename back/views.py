@@ -7,7 +7,7 @@ from .services.pago_service import PagoService
 from .services.gestor_plan_service import GestorPlanService
 from .models import*
 import json
-
+from django.utils import timezone  # Para manejar la fecha de hoy
 @csrf_exempt
 def inicio_sesion(request):
     if request.method == 'POST':
@@ -187,5 +187,87 @@ def crear_gestor_plan(request):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+@csrf_exempt
+def iniciar_recojo(request):
+    if request.method == 'POST':
+        try:
+            # Obtener datos del cuerpo de la solicitud
+            data = json.loads(request.body)
+            usuario_id = data.get('usuario_id')
+
+            # Validar que se haya enviado el usuario_id
+            if not usuario_id:
+                return JsonResponse({'error': 'Faltan campos obligatorios: usuario_id'}, status=400)
+
+            # Verificar que el usuario exista
+            usuario = Usuario.objects.filter(id=usuario_id).first()
+            if not usuario:
+                return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+            # Obtener el gestor de plan del usuario
+            gestor_plan = GestorPlan.objects.filter(usuario=usuario).first()
+            if not gestor_plan:
+                return JsonResponse({'error': 'No se encontró un plan asociado para el usuario'}, status=404)
+
+            # Crear una nueva trayectoria con estado "1" y la fecha de hoy
+            nueva_trayectoria = Trayectoria.objects.create(estado="1", fecha_fin=None)
+            
+            # Crear un nuevo recojo con la fecha de hoy y asociarlo al plan y trayectoria
+            nuevo_recojo = Recojo.objects.create(
+                fecha_ingreso=timezone.now().date(),
+                activo=True,
+                plan=gestor_plan.plan,
+                trayectoria=nueva_trayectoria
+            )
+
+            return JsonResponse({
+                'mensaje': 'Recojo iniciado exitosamente',
+                'recojo_id': nuevo_recojo.id,
+                'trayectoria_id': nueva_trayectoria.id
+            }, status=201)
+
+        except Exception as e:
+            return JsonResponse({'error': f'Error al iniciar el recojo: {str(e)}'}, status=500)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+@csrf_exempt
+def verificar_trayectoria_recojo(request):
+    if request.method == 'POST':
+        try:
+            # Obtener datos del cuerpo de la solicitud
+            data = json.loads(request.body)
+            usuario_id = data.get('usuario_id')
+
+            # Validar que se haya enviado el usuario_id
+            if not usuario_id:
+                return JsonResponse({'error': 'Faltan campos obligatorios: usuario_id'}, status=400)
+
+            # Verificar que el usuario exista
+            usuario = Usuario.objects.filter(id=usuario_id).first()
+            if not usuario:
+                return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+            # Obtener el gestor de plan del usuario
+            gestor_plan = GestorPlan.objects.filter(usuario=usuario).first()
+            if not gestor_plan:
+                return JsonResponse({'error': 'No se encontró un plan asociado para el usuario'}, status=404)
+
+            # Obtener el recojo más reciente del plan del usuario
+            recojo = Recojo.objects.filter(plan=gestor_plan.plan, activo=True).order_by('-fecha_ingreso').first()
+            print(recojo.fecha_ingreso)
+            if not recojo:
+                return JsonResponse({'error': 'No se encontró un recojo activo para el usuario'}, status=404)
+
+            # Verificar el estado de la trayectoria del recojo
+            trayectoria = recojo.trayectoria
+            print(trayectoria.estado)
+            return JsonResponse({'estado_trayectoria': 0, 'mensaje': f'El recojo está en la trayectoria {trayectoria.estado}'}, status=200)
+
+        except Exception as e:
+            return JsonResponse({'error': f'Error al verificar la trayectoria del recojo: {str(e)}'}, status=500)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
