@@ -7,7 +7,7 @@ from .services.pago_service import PagoService
 from .services.gestor_plan_service import GestorPlanService
 from .models import*
 import json
-from django.utils import timezone  # Para manejar la fecha de hoy
+from django.utils import timezone
 
 @csrf_exempt
 def inicio_sesion(request):
@@ -40,7 +40,7 @@ def inicio_sesion(request):
 def registrar_usuario(request):
     if request.method == 'POST':
         # Mostrar los datos recibidos para depurar
-        print(request.body.decode('utf-8'))  # Ver el cuerpo de la solicitud
+        print(request.body.decode('utf-8'))
         datos = json.loads(request.body.decode('utf-8'))
 
         # Verificar el tipo de usuario
@@ -99,25 +99,23 @@ def guardar_cambio_contrasena(request):
         email = data.get('email')
         contrasena_actual = data.get('contrasena_actual')
         nueva_contrasena = data.get('nueva_contrasena')
-        print(email)
-        print(contrasena_actual)
-        print(nueva_contrasena)
+        tipo_usuario = data.get('tipo_usuario')
+
+        # Obtiene el servicio correspondiente según el tipo de usuario
+        usuario_service = UsuarioServiceFactory.get_usuario_service(tipo_usuario)
+
         # Validar que el usuario existe
-        usuario = UsuarioService.verificar_credenciales(email,contrasena_actual)
+        usuario = usuario_service.verificar_credenciales(email, contrasena_actual)
         if not usuario:
-            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+            return JsonResponse({'error': 'Credenciales inválidas'}, status=404)
 
         # Validar la nueva contraseña
-        if not UsuarioService.verificar_contrasena(nueva_contrasena):
+        if not usuario_service.verificar_contrasena(nueva_contrasena):
             return JsonResponse({'error': 'La nueva contraseña no cumple con los requisitos mínimos'}, status=400)
-        
-        # Verificar la contraseña actual
+
         # Cambiar la contraseña
-        try:
-            UsuarioService.cambiar_contrasena(email, contrasena_actual, nueva_contrasena)
-            return JsonResponse({'mensaje': 'Contraseña cambiada exitosamente'}, status=200)
-        except Exception as e:
-            return JsonResponse({'error': 'Error al cambiar la contraseña'}, status=500)
+        usuario_service.cambiar_contrasena(email, contrasena_actual, nueva_contrasena)
+        return JsonResponse({'mensaje': 'Contraseña cambiada exitosamente'}, status=200)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
@@ -158,16 +156,20 @@ def guardar_perfil(request):
             if not usuario:
                 return JsonResponse({'error': 'Usuario no encontrado.'}, status=404)
 
-            # Actualiza los campos con los nuevos datos
-            usuario.nombre = data.get('nombres', usuario.nombre)
-            usuario.apellido = data.get('apellidos', usuario.apellido)
-            usuario.DNI = data.get('DNI', usuario.DNI)
-            usuario.direccion = data.get('direccion', usuario.direccion)
-            usuario.numero_contacto = data.get('numero_contacto', usuario.numero_contacto)
-            usuario.email = data.get('email', usuario.email)
+            # Usa el método actualizar_perfil de UsuarioService para actualizar los datos
+            nuevos_datos = {
+                'nombre': data.get('nombres'),
+                'apellido': data.get('apellidos'),
+                'DNI': data.get('DNI'),
+                'direccion': data.get('direccion'),
+                'numero_contacto': data.get('numero_contacto'),
+                'email': data.get('email'),
+            }
 
-            # Guarda los cambios
-            usuario.save()
+            # Llama al método actualizar_perfil
+            usuario_actualizado = UsuarioService.actualizar_perfil(usuario.email, nuevos_datos)
+            if not usuario_actualizado:
+                return JsonResponse({'error': 'Error al actualizar el perfil.'}, status=400)
 
             return JsonResponse({'mensaje': 'Perfil actualizado correctamente.'}, status=200)
         
