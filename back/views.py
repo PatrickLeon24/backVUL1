@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .services.usuario_service import UsuarioService
+from .services.usuario_service import UsuarioService, UsuarioAdminService, UsuarioServiceFactory
 from .services.plan_service import PlanService
 from .services.cupones_o import CuponesO
 from .services.pago_service import PagoService
@@ -8,6 +8,7 @@ from .services.gestor_plan_service import GestorPlanService
 from .models import*
 import json
 from django.utils import timezone  # Para manejar la fecha de hoy
+
 @csrf_exempt
 def inicio_sesion(request):
     if request.method == 'POST':
@@ -15,9 +16,21 @@ def inicio_sesion(request):
         email = data.get('email')
         contrasena = data.get('contrasena')
 
-        user = UsuarioService.verificar_credenciales(email, contrasena)
+        user = Usuario.objects.filter(email=email).first()
+        
+        if not user:
+            return JsonResponse({'message': 'Usuario no encontrado'}, status=400)
+
+        tipo_usuario = user.tipousuario.tipo
+
+        try:
+            usuario_service = UsuarioServiceFactory.get_usuario_service(tipo_usuario)
+        except ValueError as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+        user = usuario_service.verificar_credenciales(email, contrasena)
         if user:
-            return JsonResponse(UsuarioService.obtener_datos_usuario(user))
+            return JsonResponse(usuario_service.obtener_datos_usuario(user))
 
         return JsonResponse({'message': 'Credenciales incorrectas'}, status=400)
 
@@ -172,34 +185,21 @@ def crear_gestor_plan(request):
         plan_id = data.get('plan_id')
         pago_id = data.get('pago_id')
 
+        print(usuario_id, plan_id, pago_id)
         # Verificar que los campos no estén vacíos
         if not usuario_id or not plan_id or not pago_id:
             return JsonResponse({'error': 'Faltan campos obligatorios'}, status=400)
 
         try:
-            # Buscar si ya existe un GestorPlan para ese usuario
-            gestor_plan = GestorPlan.objects.filter(usuario_id=usuario_id).first()
-
-            if gestor_plan:
-                # Si existe, actualiza el plan_id y el pago_id
-                gestor_plan.plan_id = plan_id
-                gestor_plan.pago_id = pago_id
-                gestor_plan.save()
-
-                mensaje = 'GestorPlan actualizado exitosamente'
-            else:
-                # Si no existe, crea uno nuevo
-                gestor_plan = GestorPlanService.crear_gestor_plan(usuario_id, plan_id, pago_id)
-                mensaje = 'GestorPlan creado exitosamente'
-
+            # Llamar al servicio para crear el GestorPlan
+            gestor_plan = GestorPlanService.crear_gestor_plan(usuario_id, plan_id, pago_id)
             return JsonResponse({
-                'mensaje': mensaje,
+                'mensaje': 'GestorPlan creado exitosamente',
                 'gestor_plan_id': gestor_plan.id
             }, status=201)
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
@@ -278,9 +278,27 @@ def verificar_trayectoria_recojo(request):
             # Verificar el estado de la trayectoria del recojo
             trayectoria = recojo.trayectoria
             print(trayectoria.estado)
-            return JsonResponse({'estado_trayectoria': 0, 'mensaje': f'El recojo está en la trayectoria {trayectoria.estado}'}, status=200)
+            return JsonResponse({'estado_trayectoria': 4, 'mensaje': f'El recojo está en la trayectoria {trayectoria.estado}'}, status=200)
 
         except Exception as e:
             return JsonResponse({'error': f'Error al verificar la trayectoria del recojo: {str(e)}'}, status=500)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+@csrf_exempt
+def obtener_recojos(request):
+    if request.method == 'GET':
+        try:
+            usuarios_con_recojos = UsuarioAdminService.obtener_usuarios_con_recojos()
+            # Extraer campos relevantes
+            usuarios_data = usuarios_con_recojos.values(
+                'id', 'nombre', 'apellido',
+                'gestorplan__plan__nombre',
+                'gestorplan__recojo__fecha_ingreso'
+            )
+            return JsonResponse(list(usuarios_data), safe=False, status=200)
+        except Exception as e:
+            # Devuelve el error en un formato JSON
+            return JsonResponse({'error': f'Error al obtener los usuarios con recojo: {str(e)}'}, status=500)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)

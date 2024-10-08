@@ -12,6 +12,7 @@ urlpatterns = [
     path('guardar_perfil', views.guardar_perfil),
     path('gestor_plan', views.crear_gestor_plan),
     path('solicitar_recojo', views.iniciar_recojo),
-    path('estado_pedido', views.verificar_trayectoria_recojo),    
+    path('estado_pedido', views.verificar_trayectoria_recojo),
+    path('obtener_recojos', views.obtener_recojos)  
     
     ]

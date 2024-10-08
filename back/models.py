@@ -81,9 +81,16 @@ class Recojo(models.Model):
     fecha_ingreso = models.DateField()
     fecha_salida = models.DateField(null=True, blank=True)
     activo = models.BooleanField(default=True)
-    plan = models.ForeignKey(Plan, on_delete=models.CASCADE, null=True)
+    gestor_plan = models.ForeignKey(GestorPlan, on_delete=models.CASCADE, null=True)
     trayectoria = models.ForeignKey(Trayectoria, on_delete=models.CASCADE, null=True)
     
     def __str__(self):
-        return f'Recojo {self.plan} - {self.fecha_ingreso}'
+        return f'Recojo {self.gestor_plan} - {self.fecha_ingreso}'
 
+class Recojo_trayectoria(models.Model):
+    estado_ingreso = models.DateField()
+    recojo = models.ForeignKey(Recojo, on_delete=models.CASCADE, null=True)
+    trayectoria = models.ForeignKey(Trayectoria, on_delete=models.CASCADE, null=True)
+
+    def __str__(self):
+        return f'{self.recojo}'
