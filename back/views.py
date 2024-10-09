@@ -321,3 +321,19 @@ def obtener_recojos(request):
             return JsonResponse({'error': f'Error al obtener los usuarios con recojo: {str(e)}'}, status=500)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+@csrf_exempt
+def obtener_puntaje_usuario(request, usuario_id):
+    if request.method == 'GET':
+        try:
+            # Obtener el usuario a partir del ID proporcionado
+            usuario = Usuario.objects.filter(id=usuario_id).first()
+            if not usuario:
+                return JsonResponse({'error': 'Usuario no encontrado.'}, status=404)
+            # Suponiendo que los puntos del usuario están almacenados en el campo 'puntaje_acumulado'
+            puntaje = usuario.puntaje_acumulado
+            # Retornar el puntaje en formato JSON
+            return JsonResponse({'puntos': puntaje}, status=200)
+        except Exception as e:
+            return JsonResponse({'error': f'Error al obtener el puntaje del usuario: {str(e)}'}, status=500)
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
