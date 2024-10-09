@@ -234,7 +234,7 @@ def iniciar_recojo(request):
                 fecha_ingreso=timezone.now().date(),
                 activo=True,
                 gestor_plan=gestor_plan,
-                trayectoria=nueva_trayectoria
+
             )
 
             # Crear la entrada en la tabla Recojo_trayectoria

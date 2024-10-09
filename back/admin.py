@@ -23,7 +23,7 @@ class CuponAdmin(admin.ModelAdmin):
 # Registro del modelo Trayectoria
 @admin.register(Trayectoria)
 class TrayectoriaAdmin(admin.ModelAdmin):
-    list_display = ('id', 'estado', 'fecha_fin')
+    list_display = ('id', 'estado')
     search_fields = ('estado',)
 
 # Registro del modelo Pago

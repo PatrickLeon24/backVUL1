@@ -78,10 +78,30 @@
       "model": "back.trayectoria",
       "pk": 1,
       "fields": {
-          "estado": "Activo",
-          "fecha_fin": null
+          "estado": "1"
       }
   },
+  {
+    "model": "back.trayectoria",
+    "pk": 2,
+    "fields": {
+        "estado": "2"
+    }
+},
+{
+    "model": "back.trayectoria",
+    "pk": 3,
+    "fields": {
+        "estado": "3"
+    }
+},
+{
+    "model": "back.trayectoria",
+    "pk": 4,
+    "fields": {
+        "estado": "4"
+    }
+},
   {
       "model": "back.pago",
       "pk": 1,
@@ -171,8 +191,26 @@
           "fecha_ingreso": "2024-10-01",
           "fecha_salida": null,
           "activo": true,
-          "plan": 1,
-          "trayectoria": 1
+          "gestor_plan": 1
       }
+  },
+  {
+    "model": "back.recojo",
+    "pk": 1,
+    "fields": {
+        "fecha_ingreso": "2024-10-09",
+        "fecha_salida": null,
+        "activo": true,
+        "gestor_plan": 1
+    }
+  },
+  {
+    "model": "back.recojo_trayectoria",
+    "pk": 1,
+    "fields": {
+        "estado_ingreso": "2024-10-09",
+        "recojo": 1,
+        "trayectoria": 1
+    }
   }
 ]

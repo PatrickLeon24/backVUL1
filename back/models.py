@@ -37,8 +37,7 @@ class Cupon(models.Model):
     
 # Trayectoria
 class Trayectoria(models.Model):
-    estado = models.CharField(max_length=50)
-    fecha_fin = models.DateField(null=True, blank=True)
+    estado = models.CharField(max_length=2)
 
     def __str__(self):
         return self.estado
