@@ -47,7 +47,7 @@ class GestorPlanAdmin(admin.ModelAdmin):
 # Registro del modelo Recojo
 @admin.register(Recojo)
 class RecojoAdmin(admin.ModelAdmin):
-    list_display = ('id', 'fecha_ingreso', 'fecha_salida', 'activo', 'gestor_plan', 'trayectoria')
+    list_display = ('id', 'fecha_ingreso', 'fecha_salida', 'activo', 'gestor_plan')
     list_filter = ('activo',)
     search_fields = ('fecha_ingreso', 'fecha_salida')
 

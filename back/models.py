@@ -82,7 +82,6 @@ class Recojo(models.Model):
     fecha_salida = models.DateField(null=True, blank=True)
     activo = models.BooleanField(default=True)
     gestor_plan = models.ForeignKey(GestorPlan, on_delete=models.CASCADE, null=True)
-    trayectoria = models.ForeignKey(Trayectoria, on_delete=models.CASCADE, null=True)
     
     def __str__(self):
         return f'Recojo {self.gestor_plan} - {self.fecha_ingreso}'

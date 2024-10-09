@@ -254,6 +254,7 @@ def iniciar_recojo(request):
             return JsonResponse({'error': f'Error al iniciar el recojo: {str(e)}'}, status=500)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
+
 @csrf_exempt
 def verificar_trayectoria_recojo(request):
     if request.method == 'POST':
@@ -311,9 +312,9 @@ def obtener_recojos(request):
             usuarios_con_recojos = UsuarioAdminService.obtener_usuarios_con_recojos()
             # Extraer campos relevantes
             usuarios_data = usuarios_con_recojos.values(
-                'id', 'nombre', 'apellido',
+                'id', 'nombre', 'apellido', 'direccion', 'numero_contacto', 'DNI',
                 'gestorplan__plan__nombre',
-                'gestorplan__recojo__fecha_ingreso'
+                'gestorplan__recojo__fecha_ingreso',
             )
             return JsonResponse(list(usuarios_data), safe=False, status=200)
         except Exception as e:
