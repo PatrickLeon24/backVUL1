@@ -314,7 +314,7 @@ def obtener_recojos(request):
             usuarios_data = usuarios_con_recojos.values(
                 'id', 'nombre', 'apellido', 'direccion', 'numero_contacto', 'DNI',
                 'gestorplan__plan__nombre',
-                'gestorplan__recojo__fecha_ingreso',
+                'gestorplan__recojo__fecha_ingreso', 'gestorplan__recojo__recojo_trayectoria__trayectoria__estado'
             )
             return JsonResponse(list(usuarios_data), safe=False, status=200)
         except Exception as e:
@@ -338,3 +338,44 @@ def obtener_puntaje_usuario(request, usuario_id):
         except Exception as e:
             return JsonResponse({'error': f'Error al obtener el puntaje del usuario: {str(e)}'}, status=500)
     return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+
+@csrf_exempt
+def consultar_recojo(request):
+    if request.method == 'POST':
+        try:
+            body = json.loads(request.body)
+            recojo_id = body.get('recojo_id')
+            print(recojo_id)
+            # Verifica si el recojo con el ID existe
+            recojo = Recojo.objects.filter(id=recojo_id).first()
+            
+            if not recojo:
+                # Si existe, puedes devolver los datos necesarios
+                return JsonResponse({'status': 'error', 'message': 'Recojo no encontrado'}, status=404)
+                
+            r_t=Recojo_trayectoria.objects.filter(recojo=recojo).first()
+            
+            print(r_t.trayectoria)
+            trayecto=r_t.trayectoria
+            print("11111")
+            print(trayecto.estado)
+            if int(trayecto.estado)==1:
+                print("11111")
+                trayectoria_obj = Trayectoria.objects.get(id=2)  # Asegúrate de que esta trayectoria exista
+                R_tN = Recojo_trayectoria.objects.create(
+                    estado_ingreso=timezone.now().strftime("%Y-%m-%d"),
+                    recojo=recojo,
+                    trayectoria=trayectoria_obj
+                )
+                print("Trayectoria actualizada a 2")
+                
+
+
+
+            
+            return JsonResponse({'status': 'success', 'recojo': "recojo_data"}, status=200)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'JSON inválido'}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)

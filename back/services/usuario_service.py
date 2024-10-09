@@ -68,7 +68,7 @@ class UsuarioAdminService(UsuarioService):
     @staticmethod
     def obtener_usuarios_con_recojos():
         # Obtiene todos los usuarios que tienen un recojo activo
-        usuarios_con_recojos = Usuario.objects.filter(gestorplan__recojo__activo=True).distinct()
+        usuarios_con_recojos = Usuario.objects.filter(gestorplan__recojo__activo=True)
         return usuarios_con_recojos
 
 class UsuarioClienteService(UsuarioService):
