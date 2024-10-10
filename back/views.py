@@ -227,7 +227,7 @@ def iniciar_recojo(request):
                 return JsonResponse({'error': 'No se encontró un plan asociado para el usuario'}, status=404)
 
             # Crear una nueva trayectoria con estado "1"
-            nueva_trayectoria = Trayectoria.objects.create(estado="1", fecha_fin=None)
+            nueva_trayectoria = Trayectoria.objects.get(id=1) 
             
             # Crear un nuevo recojo asociado al gestor de plan y la trayectoria inicial
             nuevo_recojo = Recojo.objects.create(
@@ -285,7 +285,7 @@ def verificar_trayectoria_recojo(request):
 
             # Obtener la trayectoria del recojo
             
-            r_t = Recojo_trayectoria.objects.filter(recojo=recojo).order_by('-estado_ingreso').first()
+            r_t = Recojo_trayectoria.objects.filter(recojo=recojo).last()
             print(r_t)
             print(Recojo_trayectoria.objects.all())
             if not r_t:
@@ -301,7 +301,7 @@ def verificar_trayectoria_recojo(request):
 
 
         except Exception as e:
-            return JsonResponse({'error': f'Error al verificar la trayectoria del recojo: {str(e)}'}, status=500)
+            return JsonResponse({'estado_trayectoria': 0, 'mensaje': f'El recojo está en la trayectoria {0}'}, status=200)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
@@ -310,13 +310,39 @@ def obtener_recojos(request):
     if request.method == 'GET':
         try:
             usuarios_con_recojos = UsuarioAdminService.obtener_usuarios_con_recojos()
+
             # Extraer campos relevantes
-            usuarios_data = usuarios_con_recojos.values(
+            usuarios_data = list(UsuarioAdminService.obtener_usuarios_con_recojos().values(
                 'id', 'nombre', 'apellido', 'direccion', 'numero_contacto', 'DNI',
                 'gestorplan__plan__nombre',
-                'gestorplan__recojo__fecha_ingreso', 'gestorplan__recojo__recojo_trayectoria__trayectoria__estado'
-            )
-            return JsonResponse(list(usuarios_data), safe=False, status=200)
+                'gestorplan__recojo__id',  # ID del recojo para identificar el último
+                'gestorplan__recojo__fecha_ingreso',
+                'gestorplan__recojo__recojo_trayectoria__trayectoria__estado',
+                'gestorplan__recojo__recojo_trayectoria__id'  # ID de recojo_trayectoria
+            ))
+
+            # Diccionario para almacenar el último recojo por usuario
+            usuarios_con_ultimo_recojo = {}
+
+            # Iterar por todos los usuarios y recojos
+            for usuario in usuarios_data:
+                usuario_id = usuario['id']
+                recojo_trayectoria_id = usuario['gestorplan__recojo__recojo_trayectoria__id']
+
+                # Si el usuario no está en el diccionario, lo agregamos
+                if usuario_id not in usuarios_con_ultimo_recojo:
+                    usuarios_con_ultimo_recojo[usuario_id] = usuario
+                else:
+                    # Si ya existe el usuario, comparamos el id del recojo_trayectoria actual con el almacenado
+                    print(recojo_trayectoria_id)
+                    print(usuarios_con_ultimo_recojo[usuario_id]['gestorplan__recojo__recojo_trayectoria__id'])
+                    if recojo_trayectoria_id > usuarios_con_ultimo_recojo[usuario_id]['gestorplan__recojo__recojo_trayectoria__id']:
+                        usuarios_con_ultimo_recojo[usuario_id] = usuario
+
+            # Convertir el diccionario de vuelta a una lista si lo necesitas
+            usuarios_final = list(usuarios_con_ultimo_recojo.values())
+            
+            return JsonResponse(usuarios_final, safe=False, status=200)
         except Exception as e:
             # Devuelve el error en un formato JSON
             return JsonResponse({'error': f'Error al obtener los usuarios con recojo: {str(e)}'}, status=500)
@@ -348,14 +374,26 @@ def consultar_recojo(request):
             recojo_id = body.get('recojo_id')
             print(recojo_id)
             # Verifica si el recojo con el ID existe
-            recojo = Recojo.objects.filter(id=recojo_id).first()
+            usuario=Usuario.objects.filter(id=recojo_id).first()
+            gestor_plan = GestorPlan.objects.filter(usuario=usuario).first()
+            if not gestor_plan:
+                return JsonResponse({'error': 'No se encontró un plan asociado para el usuario'}, status=404)
+            print(gestor_plan.usuario)
+            # Obtener el recojo más reciente y activo del plan del usuario
             
+            recojo = Recojo.objects.filter(gestor_plan=gestor_plan,activo=True).last()
+            print(recojo.id)
             if not recojo:
-                # Si existe, puedes devolver los datos necesarios
-                return JsonResponse({'status': 'error', 'message': 'Recojo no encontrado'}, status=404)
-                
-            r_t=Recojo_trayectoria.objects.filter(recojo=recojo).first()
+                return JsonResponse({'error': 'No se encontró un recojo activo para el usuario'}, status=404)
+
+            # Obtener la trayectoria del recojo
             
+            
+            
+
+                
+            r_t=Recojo_trayectoria.objects.filter(recojo=recojo).last()
+            print(r_t)
             print(r_t.trayectoria)
             trayecto=r_t.trayectoria
             print("11111")
@@ -369,8 +407,28 @@ def consultar_recojo(request):
                     trayectoria=trayectoria_obj
                 )
                 print("Trayectoria actualizada a 2")
-                
-
+            if int(trayecto.estado)==2:
+                print("11111")
+                trayectoria_obj = Trayectoria.objects.get(id=3)  # Asegúrate de que esta trayectoria exista
+                R_tN = Recojo_trayectoria.objects.create(
+                    estado_ingreso=timezone.now().strftime("%Y-%m-%d"),
+                    recojo=recojo,
+                    trayectoria=trayectoria_obj
+                )
+                print("Trayectoria actualizada a 3")
+            if int(trayecto.estado)==3:
+                print("11111")
+                trayectoria_obj = Trayectoria.objects.get(id=4)  # Asegúrate de que esta trayectoria exista
+                R_tN = Recojo_trayectoria.objects.create(
+                    estado_ingreso=timezone.now().strftime("%Y-%m-%d"),
+                    recojo=recojo,
+                    trayectoria=trayectoria_obj
+                )
+                print("Trayectoria actualizada a 4")
+            if int(trayecto.estado)==4:
+                recojo.activo=False
+                recojo.save()
+                print("Recojo desactivado")
 
 
             
