@@ -10,7 +10,5 @@ class PagoService:
             metodo_pago=metodo_pago,
             fecha_pago=fecha_pago
         )
-        # Guardar en la base de datos
         nuevo_pago.save()
-
         return nuevo_pago

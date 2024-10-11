@@ -39,9 +39,7 @@ def inicio_sesion(request):
 @csrf_exempt
 def registrar_usuario(request):
     if request.method == 'POST':
-        # Mostrar los datos recibidos para depurar
-        print(request.body.decode('utf-8'))
-        datos = json.loads(request.body.decode('utf-8'))
+        datos = json.loads(request.body)
 
         # Verificar el tipo de usuario
         tipo_usuario = Tipo_Usuario.objects.filter(id=datos.get('tipo_usuario')).first()
@@ -77,7 +75,7 @@ def obtener_planes_recojo(request):
 @csrf_exempt
 def obtener_plan_usuario(request, usuario_id):
     if request.method == 'GET':
-        plan_data = PlanService.obtener_plan_contratado(usuario_id)
+        plan_data = GestorPlanService.obtener_plan_contratado(usuario_id)
         if "error" in plan_data:
             return JsonResponse(plan_data, status=404)
         return JsonResponse(plan_data, safe=False)
@@ -156,7 +154,6 @@ def guardar_perfil(request):
             if not usuario:
                 return JsonResponse({'error': 'Usuario no encontrado.'}, status=404)
 
-            # Usa el método actualizar_perfil de UsuarioService para actualizar los datos
             nuevos_datos = {
                 'nombre': data.get('nombres'),
                 'apellido': data.get('apellidos'),
@@ -266,8 +263,6 @@ def iniciar_recojo(request):
             return JsonResponse({'error': f'Error al iniciar el recojo: {str(e)}'}, status=500)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
-
-
 
 @csrf_exempt
 def verificar_trayectoria_recojo(request):
@@ -409,7 +404,7 @@ def consultar_recojo(request):
 
             # Actualizar estado según la trayectoria
             if int(trayecto.estado) == 1:
-                trayectoria_obj = Trayectoria.objects.get(id=2)  # Asegúrate de que esta trayectoria exista
+                trayectoria_obj = Trayectoria.objects.get(id=2) 
                 R_tN = Recojo_trayectoria.objects.create(
                     estado_ingreso=timezone.localtime().strftime("%Y-%m-%d %H:%M:%S"),
                     recojo=recojo,

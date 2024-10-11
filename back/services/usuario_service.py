@@ -46,7 +46,7 @@ class UsuarioService:
 class UsuarioAdminService(UsuarioService):
     @staticmethod
     def verificar_credenciales(email, contrasena):
-        user = Usuario.objects.filter(email=email, tipousuario__tipo='Administrador', contrasena =contrasena).first()
+        user = Usuario.objects.filter(email=email, tipousuario__tipo='Administrador', contrasena=contrasena).first()
         if user:
             return user
         return None
