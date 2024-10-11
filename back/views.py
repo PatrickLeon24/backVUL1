@@ -221,10 +221,23 @@ def iniciar_recojo(request):
             if not usuario:
                 return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
 
+            # Verificar si ya hay un recojo activo para el usuario
+            recojo_activo = Recojo.objects.filter(gestor_plan__usuario=usuario, activo=True).first()
+            if recojo_activo:
+                return JsonResponse({'error': 'El recojo solicitado anteriormente aún no se ha completado.'}, status=400)
+
             # Obtener el gestor de plan del usuario
             gestor_plan = GestorPlan.objects.filter(usuario=usuario).last()
             if not gestor_plan:
                 return JsonResponse({'error': 'No se encontró un plan asociado para el usuario'}, status=404)
+
+            # Verificar si se ha alcanzado la frecuencia máxima de recojos
+            if gestor_plan.recojos_solicitados >= gestor_plan.plan.frecuencia_recojo:
+                return JsonResponse({'error': 'Se ha alcanzado el limite de recojos por su plan contratado'}, status=400)
+
+            # Incrementar el contador de recojos solicitados
+            gestor_plan.recojos_solicitados += 1
+            gestor_plan.save()
 
             # Crear una nueva trayectoria con estado "1"
             nueva_trayectoria = Trayectoria.objects.get(id=1) 
@@ -234,7 +247,6 @@ def iniciar_recojo(request):
                 fecha_ingreso=timezone.now().date(),
                 activo=True,
                 gestor_plan=gestor_plan,
-
             )
 
             # Crear la entrada en la tabla Recojo_trayectoria
@@ -254,6 +266,8 @@ def iniciar_recojo(request):
             return JsonResponse({'error': f'Error al iniciar el recojo: {str(e)}'}, status=500)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+
 
 @csrf_exempt
 def verificar_trayectoria_recojo(request):

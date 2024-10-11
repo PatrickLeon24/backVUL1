@@ -71,6 +71,7 @@ class GestorPlan(models.Model):
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
     plan = models.ForeignKey(Plan, on_delete=models.CASCADE)
     pago = models.ForeignKey(Pago, on_delete=models.CASCADE)
+    recojos_solicitados = models.IntegerField(default=0)
 
     def __str__(self):
         return f'{self.usuario} - {self.plan}'

@@ -41,7 +41,7 @@ class PlanAdmin(admin.ModelAdmin):
 
 @admin.register(GestorPlan)
 class GestorPlanAdmin(admin.ModelAdmin):
-    list_display = ('id', 'usuario', 'plan', 'pago')
+    list_display = ('id', 'usuario', 'plan', 'pago', 'recojos_solicitados')
     search_fields = ('usuario__email', 'plan__nombre')
 
 # Registro del modelo Recojo
