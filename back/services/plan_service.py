@@ -3,8 +3,19 @@ from back.models import Plan
 class PlanService:
 
     @staticmethod
-    def obtener_planes():
+    def obtener_planes(precio_min=None, precio_max=None, frecuencia_recojo=None):
+        # Iniciar consulta base
         planes = Plan.objects.all()
+
+        # Aplicar filtros si están presentes
+        if precio_min is not None:
+            planes = planes.filter(precio__gte=precio_min)
+        if precio_max is not None:
+            planes = planes.filter(precio__lte=precio_max)
+        if frecuencia_recojo is not None:
+            planes = planes.filter(frecuencia_recojo=frecuencia_recojo)
+
+        # Transformar los planes a formato JSON
         planes_data = []
         for plan in planes:
             plan_data = {
@@ -22,4 +33,3 @@ class PlanService:
             }
             planes_data.append(plan_data)
         return planes_data
-        

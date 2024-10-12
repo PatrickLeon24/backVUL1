@@ -67,7 +67,24 @@ def obtener_tipos_usuario(request):
 @csrf_exempt
 def obtener_planes_recojo(request):
     if request.method == 'GET':
-        planes_data = PlanService.obtener_planes()
+        # Obtener los parámetros de filtro desde la URL
+        precio_min = request.GET.get('precio_min', None)
+        precio_max = request.GET.get('precio_max', None)
+        frecuencia_recojo = request.GET.get('frecuencia_recojo', None)
+
+        # Convertir los parámetros numéricos a float si están presentes
+        if precio_min is not None:
+            precio_min = float(precio_min)
+        if precio_max is not None:
+            precio_max = float(precio_max)
+
+        # Llamar al servicio con los filtros
+        planes_data = PlanService.obtener_planes(
+            precio_min=precio_min, 
+            precio_max=precio_max, 
+            frecuencia_recojo=frecuencia_recojo
+        )
+        
         return JsonResponse(planes_data, safe=False)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
