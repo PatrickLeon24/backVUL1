@@ -14,23 +14,6 @@
     }
   },
   {
-      "model": "back.usuario",
-      "pk": 1,
-      "fields": {
-          "nombre": "Daniel",
-          "apellido": "Taype",
-          "direccion": "Av. Los Olivos 123",
-          "numero_contacto": "987654321",
-          "DNI": "12345678",
-          "genero": "Hombre",
-          "email": "daniel@outlook.com",
-          "contrasena": "hola1234",
-          "cantidad_residuos_acumulados": 20,
-          "puntaje_acumulado": 100,
-          "tipousuario": 1
-      }
-  },
-  {
       "model": "back.cupon",
       "pk": 1,
       "fields": {
@@ -103,15 +86,6 @@
     }
 },
   {
-      "model": "back.pago",
-      "pk": 1,
-      "fields": {
-          "estado": "Completado",
-          "metodo_pago": "Tarjeta",
-          "fecha_pago": "2024-10-01"
-      }
-  },
-  {
       "model": "back.plan",
       "pk": 1,
       "fields": {
@@ -174,43 +148,5 @@
         "cantidad_compostaje": 8.0,
         "puntos_plan": 250
     }
-},
-  {
-      "model": "back.gestorplan",
-      "pk": 1,
-      "fields": {
-          "usuario": 1,
-          "plan": 1,
-          "pago": 1
-      }
-  },
-  {
-      "model": "back.recojo",
-      "pk": 1,
-      "fields": {
-          "fecha_ingreso": "2024-10-01",
-          "fecha_salida": null,
-          "activo": true,
-          "gestor_plan": 1
-      }
-  },
-  {
-    "model": "back.recojo",
-    "pk": 1,
-    "fields": {
-        "fecha_ingreso": "2024-10-09",
-        "fecha_salida": null,
-        "activo": true,
-        "gestor_plan": 1
-    }
-  },
-  {
-    "model": "back.recojo_trayectoria",
-    "pk": 1,
-    "fields": {
-        "estado_ingreso": "2024-10-09",
-        "recojo": 1,
-        "trayectoria": 1
-    }
-  }
+}
 ]

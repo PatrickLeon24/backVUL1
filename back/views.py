@@ -35,7 +35,7 @@ def inicio_sesion(request):
         return JsonResponse({'message': 'Credenciales incorrectas'}, status=400)
 
     return JsonResponse({'message': 'Método no permitido'}, status=405)
-
+    
 @csrf_exempt
 def registrar_usuario(request):
     if request.method == 'POST':
@@ -225,7 +225,7 @@ def iniciar_recojo(request):
         try:
             data = json.loads(request.body)
             usuario_id = data.get('usuario_id')
-
+            print(usuario_id)
             # Validar que se haya enviado el usuario_id
             if not usuario_id:
                 return JsonResponse({'error': 'Faltan campos obligatorios: usuario_id'}, status=400)
@@ -234,17 +234,17 @@ def iniciar_recojo(request):
             usuario = Usuario.objects.filter(id=usuario_id).first()
             if not usuario:
                 return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
-
+            print(usuario)
             # Verificar si ya hay un recojo activo para el usuario
             recojo_activo = Recojo.objects.filter(gestor_plan__usuario=usuario, activo=True).first()
             if recojo_activo:
                 return JsonResponse({'error': 'El recojo solicitado anteriormente aún no se ha completado.'}, status=400)
-
+            print(recojo_activo)
             # Obtener el gestor de plan del usuario
             gestor_plan = GestorPlan.objects.filter(usuario=usuario).last()
             if not gestor_plan:
                 return JsonResponse({'error': 'No se encontró un plan asociado para el usuario'}, status=404)
-
+            print(gestor_plan)
             # Verificar si se ha alcanzado la frecuencia máxima de recojos
             if gestor_plan.recojos_solicitados >= gestor_plan.plan.frecuencia_recojo:
                 return JsonResponse({'error': 'Se ha alcanzado el limite de recojos por su plan contratado'}, status=400)
@@ -287,7 +287,7 @@ def verificar_trayectoria_recojo(request):
         try:
             data = json.loads(request.body)
             usuario_id = data.get('usuario_id')
-    
+            print(usuario_id)
             # Validar que se haya enviado el usuario_id
             if not usuario_id:
                 return JsonResponse({'error': 'Faltan campos obligatorios: usuario_id'}, status=400)
