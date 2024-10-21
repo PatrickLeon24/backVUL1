@@ -50,9 +50,45 @@ def registrar_usuario(request):
         if not UsuarioService.verificar_contrasena(datos.get('contrasena')):
             return JsonResponse({'error': 'La contraseña debe tener 8 caracteres como mínimo'}, status=400)
 
+        # Validar código de invitación si el usuario es administrador
+        if tipo_usuario.tipo == 'Administrador':
+            codigo_invitacion = datos.get('codigo_invitacion')
+            if not codigo_invitacion:
+                return JsonResponse({'error': 'Se requiere un código de invitación para registrarse como administrador'}, status=400)
+
+            # Verificar si el código de invitación es válido
+            try:
+                codigo = CodigoInvitacion.objects.get(codigo=codigo_invitacion, utilizado=False)
+                # Marcar el código como utilizado
+                codigo.utilizado = True
+                codigo.save()
+            except CodigoInvitacion.DoesNotExist:
+                return JsonResponse({'error': 'Código de invitación inválido o ya utilizado'}, status=400)
+
         # Crear el usuario
         UsuarioService.crear_usuario(datos, tipo_usuario)
         return JsonResponse({'mensaje': 'Usuario registrado exitosamente'}, status=201)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+@csrf_exempt  # Desactiva la verificación CSRF (haz esto solo si es necesario)
+def generar_codigo_invitacion(request):
+    if request.method == 'POST':
+        try:
+            # Lee el cuerpo JSON de la solicitud
+            data = json.loads(request.body)
+            admin_id = data.get('admin_id')
+
+            # Busca al administrador en la base de datos
+            usuario_admin = Usuario.objects.get(id=admin_id)  # Asegúrate de que esto esté bien manejado
+
+            # Llama al método estático de tu servicio pasando el usuario_admin
+            codigo = UsuarioAdminService.generar_codigo_invitacion(usuario_admin)
+            return JsonResponse({'codigo': codigo}, status=200)
+        except Usuario.DoesNotExist:
+            return JsonResponse({'error': 'Administrador no encontrado'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 

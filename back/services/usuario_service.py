@@ -1,5 +1,6 @@
-from back.models import Usuario
-
+from back.models import Usuario, CodigoInvitacion
+import random
+import string
 class UsuarioService:
     @staticmethod
     def verificar_contrasena(contrasena):
@@ -71,6 +72,13 @@ class UsuarioAdminService(UsuarioService):
         usuarios_con_recojos = Usuario.objects.filter(gestorplan__recojo__activo=True)
         return usuarios_con_recojos
 
+    @staticmethod
+    def generar_codigo_invitacion(usuario_admin):
+        codigo = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))  # Genera un código aleatorio
+        nuevo_codigo = CodigoInvitacion(codigo=codigo, creado_por=usuario_admin)
+        nuevo_codigo.save()
+        return nuevo_codigo.codigo
+    
 class UsuarioClienteService(UsuarioService):
 
     @staticmethod

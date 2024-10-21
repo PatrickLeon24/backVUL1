@@ -56,3 +56,7 @@ class RecojoAdmin(admin.ModelAdmin):
 class RecojoTrayectoriaAdmin(admin.ModelAdmin):
     list_display = ('id', 'estado_ingreso', 'recojo', 'trayectoria')
     search_fields = ('estado_ingreso', 'recojo')
+
+@admin.register(CodigoInvitacion)
+class CodigoInvitacionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'codigo', 'utilizado', 'creado_por', 'fecha_creacion')

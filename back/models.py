@@ -93,3 +93,12 @@ class Recojo_trayectoria(models.Model):
 
     def __str__(self):
         return f'{self.recojo}'
+
+class CodigoInvitacion(models.Model):
+    codigo = models.CharField(max_length=10, unique=True)  # Código único
+    utilizado = models.BooleanField(default=False)  # Estado del código
+    creado_por = models.ForeignKey(Usuario, on_delete=models.CASCADE)  # Quién generó el código
+    fecha_creacion = models.DateTimeField(auto_now_add=True)  # Fecha de creación
+
+    def __str__(self):
+        return self.codigo

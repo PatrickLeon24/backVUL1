@@ -16,4 +16,5 @@ urlpatterns = [
     path('obtener_recojos', views.obtener_recojos),  
     path('puntos/<int:usuario_id>/', views.obtener_puntaje_usuario),
     path('consultar_recojo', views.consultar_recojo),
+    path('generar', views.generar_codigo_invitacion)
     ]
