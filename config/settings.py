@@ -79,8 +79,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'verdeulimadb',  # Reemplaza con el nombre de tu base de datos
+        'USER': 'verde_ulima',                  # Reemplaza con tu nombre de usuario de PostgreSQL
+        'PASSWORD': 'contra123',            # Reemplaza con tu contraseña de PostgreSQL
+        'HOST': '127.0.0.1',                    # O la dirección de tu servidor de base de datos
+        'PORT': '5432',                         # Puerto de PostgreSQL (por defecto es 5432)
     }
 }
 
