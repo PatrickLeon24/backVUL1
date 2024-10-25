@@ -437,9 +437,12 @@ def consultar_recojo(request):
         try:
             body = json.loads(request.body)
             recojo_id = body.get('recojo_id')
-            print(recojo_id)
+            admin_id = body.get('admin_id')
 
-            # Verifica si el recojo con el ID existe
+            administrador = Usuario.objects.filter(id=admin_id).first()
+            if not administrador:
+                return JsonResponse({'error': 'Administrador no encontrado'}, status=404)
+
             usuario = Usuario.objects.filter(id=recojo_id).first()
             if not usuario:
                 return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
@@ -447,64 +450,52 @@ def consultar_recojo(request):
             gestor_plan = GestorPlan.objects.filter(usuario=usuario).last()
             if not gestor_plan:
                 return JsonResponse({'error': 'No se encontró un plan asociado para el usuario'}, status=404)
-            print(gestor_plan.usuario)
 
-            # Obtener el recojo más reciente y activo del plan del usuario
             recojo = Recojo.objects.filter(gestor_plan=gestor_plan, activo=True).last()
-            print(recojo.id)
             if not recojo:
                 return JsonResponse({'error': 'No se encontró un recojo activo para el usuario'}, status=404)
 
-            # Obtener la trayectoria del recojo     
             r_t = Recojo_trayectoria.objects.filter(recojo=recojo).last()
-            print(r_t)
             if not r_t:
                 return JsonResponse({'error': 'No se encontró una trayectoria asociada al recojo'}, status=404)
 
             trayecto = r_t.trayectoria
-            print("11111")
-            print(trayecto.estado)
 
-            # Actualizar estado según la trayectoria
             if int(trayecto.estado) == 1:
-                trayectoria_obj = Trayectoria.objects.get(id=2) 
+                trayectoria_obj = Trayectoria.objects.get(id=2)
                 R_tN = Recojo_trayectoria.objects.create(
-                    estado_ingreso=timezone.localtime().strftime("%Y-%m-%d %H:%M:%S"),
+                    estado_ingreso=timezone.localtime(),
                     recojo=recojo,
                     trayectoria=trayectoria_obj
                 )
-                print("Trayectoria actualizada a 2")
             elif int(trayecto.estado) == 2:
                 trayectoria_obj = Trayectoria.objects.get(id=3)
                 R_tN = Recojo_trayectoria.objects.create(
-                    estado_ingreso=timezone.localtime().strftime("%Y-%m-%d %H:%M:%S"),
+                    estado_ingreso=timezone.localtime(),
                     recojo=recojo,
-                    trayectoria=trayectoria_obj
+                    trayectoria=trayectoria_obj,
+                    administrador=administrador
                 )
-                print("Trayectoria actualizada a 3")
             elif int(trayecto.estado) == 3:
                 trayectoria_obj = Trayectoria.objects.get(id=4)
                 R_tN = Recojo_trayectoria.objects.create(
-                    estado_ingreso=timezone.localtime().strftime("%Y-%m-%d %H:%M:%S"),
+                    estado_ingreso=timezone.localtime(),
                     recojo=recojo,
-                    trayectoria=trayectoria_obj
+                    trayectoria=trayectoria_obj,
+                    administrador=administrador
                 )
-                print("Trayectoria actualizada a 4")
             elif int(trayecto.estado) == 4:
-                # Desactivar el recojo
                 recojo.activo = False
-                recojo.fecha_salida = timezone.now().strftime("%Y-%m-%d")
+                recojo.fecha_salida = timezone.now()
                 recojo.save()
-                print("Recojo desactivado")
 
-                # Otorgar puntos al usuario
-                puntos_plan = gestor_plan.plan.puntos_plan  # Obtener puntos del plan asociado
-                usuario.puntaje_acumulado += puntos_plan  # Sumar puntos al usuario
+                puntos_plan = gestor_plan.plan.puntos_plan
+                usuario.puntaje_acumulado += puntos_plan
                 usuario.save()
-                print(f"Puntos otorgados: {puntos_plan}")
 
             return JsonResponse({'status': 'success', 'recojo': "recojo_data"}, status=200)
 
         except json.JSONDecodeError:
             return JsonResponse({'status': 'error', 'message': 'JSON inválido'}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
+
