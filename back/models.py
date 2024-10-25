@@ -7,6 +7,7 @@ class Tipo_Usuario(models.Model):
 
     def __str__(self):
         return self.tipo
+    
 # Usuario
 class Usuario(models.Model):
     nombre = models.CharField(max_length=30, null=True)
@@ -17,7 +18,6 @@ class Usuario(models.Model):
     genero = models.CharField(max_length=10, null=True)
     email = models.EmailField(max_length=50, null=True)
     contrasena = models.CharField(max_length=30, null=True)
-    cantidad_residuos_acumulados = models.IntegerField(default=0)
     puntaje_acumulado = models.IntegerField(default=0)
     tipousuario = models.ForeignKey(Tipo_Usuario, on_delete=models.CASCADE, null=True)
 
@@ -31,9 +31,18 @@ class Cupon(models.Model):
     descripcion = models.TextField()
     descuento = models.FloatField()
     imagen = models.URLField(max_length=200)
+    disponibilidad = models.IntegerField(default=0)
 
     def __str__(self):
         return f'Cupón de {self.local} - {self.costo_puntos} puntos'
+
+# Gestor Cupon
+class GestorCupon(models.Model):
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True)
+    cupon = models.ForeignKey(Cupon, on_delete=models.CASCADE, null=True)
+
+    def __str__(self):
+        return f'{self.usuario} - {self.cupon}'
     
 # Trayectoria
 class Trayectoria(models.Model):
@@ -41,7 +50,8 @@ class Trayectoria(models.Model):
 
     def __str__(self):
         return self.estado
-    
+
+# Pago    
 class Pago(models.Model):
     estado = models.CharField(max_length=30)
     metodo_pago = models.CharField(max_length=15)
@@ -86,19 +96,22 @@ class Recojo(models.Model):
     def __str__(self):
         return f'Recojo {self.gestor_plan} - {self.fecha_ingreso}'
 
+# Recojo_trayectoria
 class Recojo_trayectoria(models.Model):
     estado_ingreso = models.DateTimeField()
     recojo = models.ForeignKey(Recojo, on_delete=models.CASCADE, null=True)
     trayectoria = models.ForeignKey(Trayectoria, on_delete=models.CASCADE, null=True)
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return f'{self.recojo}'
 
+# CodigoInvitacion
 class CodigoInvitacion(models.Model):
-    codigo = models.CharField(max_length=10, unique=True)  # Código único
-    utilizado = models.BooleanField(default=False)  # Estado del código
-    creado_por = models.ForeignKey(Usuario, on_delete=models.CASCADE)  # Quién generó el código
-    fecha_creacion = models.DateTimeField(auto_now_add=True)  # Fecha de creación
+    codigo = models.CharField(max_length=10, unique=True)
+    utilizado = models.BooleanField(default=False) 
+    creado_por = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.codigo

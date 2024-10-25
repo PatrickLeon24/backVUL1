@@ -10,15 +10,20 @@ class TipoUsuarioAdmin(admin.ModelAdmin):
 # Registro del modelo Usuario
 @admin.register(Usuario)
 class UsuarioAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nombre', 'apellido', 'email', 'cantidad_residuos_acumulados', 'puntaje_acumulado')
+    list_display = ('id', 'nombre', 'apellido', 'email', 'puntaje_acumulado')
     search_fields = ('nombre', 'apellido', 'email')
     list_filter = ('genero',)
 
 # Registro del modelo Cupon
 @admin.register(Cupon)
 class CuponAdmin(admin.ModelAdmin):
-    list_display = ('id', 'local', 'descripcion', 'costo_puntos', 'descuento')
+    list_display = ('id', 'local', 'descripcion', 'costo_puntos', 'descuento', 'disponibilidad')
     search_fields = ('local', 'descripcion')
+
+@admin.register(GestorCupon)
+class GestorCuponAdmin(admin.ModelAdmin):
+    list_display = ('id', 'usuario', 'cupon')
+    search_fields = ('usuario__nombre', 'cupon__local')
 
 # Registro del modelo Trayectoria
 @admin.register(Trayectoria)
@@ -54,8 +59,8 @@ class RecojoAdmin(admin.ModelAdmin):
 # Registro del modelo Recojo_trayectoria
 @admin.register(Recojo_trayectoria)
 class RecojoTrayectoriaAdmin(admin.ModelAdmin):
-    list_display = ('id', 'estado_ingreso', 'recojo', 'trayectoria')
-    search_fields = ('estado_ingreso', 'recojo')
+    list_display = ('id', 'estado_ingreso', 'recojo', 'trayectoria', 'usuario')
+    search_fields = ('estado_ingreso', 'recojo', 'usuario__nombre - usuario__apellido')
 
 @admin.register(CodigoInvitacion)
 class CodigoInvitacionAdmin(admin.ModelAdmin):
