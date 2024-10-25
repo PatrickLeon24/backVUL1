@@ -38,7 +38,6 @@ class UsuarioService:
             DNI=datos.get('DNI'),
             genero=datos.get('genero'),
             puntaje_acumulado=0,
-            cantidad_residuos_acumulados=0,
             tipousuario=tipo_usuario
         )
         usuario.save()
@@ -100,7 +99,6 @@ class UsuarioClienteService(UsuarioService):
             "direccion": user.direccion,
             "genero": user.genero,
             "puntaje_acumulado": user.puntaje_acumulado,
-            "cantidad_residuos_acumulados": user.cantidad_residuos_acumulados,
             "tipousuario": user.tipousuario.tipo
         }
 

@@ -59,8 +59,8 @@ class RecojoAdmin(admin.ModelAdmin):
 # Registro del modelo Recojo_trayectoria
 @admin.register(Recojo_trayectoria)
 class RecojoTrayectoriaAdmin(admin.ModelAdmin):
-    list_display = ('id', 'estado_ingreso', 'recojo', 'trayectoria', 'usuario')
-    search_fields = ('estado_ingreso', 'recojo', 'usuario__nombre - usuario__apellido')
+    list_display = ('id', 'estado_ingreso', 'recojo', 'trayectoria', 'administrador')
+    search_fields = ('estado_ingreso', 'recojo', 'administrador__nombre - administrador__apellido')
 
 @admin.register(CodigoInvitacion)
 class CodigoInvitacionAdmin(admin.ModelAdmin):

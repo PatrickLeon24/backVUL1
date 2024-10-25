@@ -323,14 +323,16 @@ def verificar_trayectoria_recojo(request):
         try:
             data = json.loads(request.body)
             usuario_id = data.get('usuario_id')
-            print(usuario_id)
+
             # Validar que se haya enviado el usuario_id
             if not usuario_id:
                 return JsonResponse({'error': 'Faltan campos obligatorios: usuario_id'}, status=400)
+
             # Verificar que el usuario exista
             usuario = Usuario.objects.filter(id=usuario_id).first()
             if not usuario:
                 return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
             # Obtener el gestor de plan del usuario
             gestor_plan = GestorPlan.objects.filter(usuario=usuario).last()
             if not gestor_plan:
@@ -345,21 +347,29 @@ def verificar_trayectoria_recojo(request):
             if not trayectorias:
                 return JsonResponse({'error': 'No se encontraron trayectorias asociadas al recojo'}, status=404)
 
-            # Obtener estado y fecha completa para cada trayectoria
+            # Obtener estado, fecha y administrador para cada trayectoria
             estado_trayectoria = []
             fechas_hora = []
+            administradores = []
             for r_t in trayectorias:
                 estado_trayectoria.append(r_t.trayectoria.estado)
                 estado_ingreso_local = timezone.localtime(r_t.estado_ingreso)
                 fechas_hora.append(estado_ingreso_local.strftime('%Y-%m-%d %H:%M'))
+                
+                # Solo agregar el administrador si existe
+                if r_t.administrador:  # Verifica si existe administrador
+                    administradores.append(f"{r_t.administrador.nombre} {r_t.administrador.apellido}")
+                else:
+                    administradores.append("Administrador no asignado")  # Si no hay administrador
 
             return JsonResponse({
                 'estado_trayectoria': estado_trayectoria[-1],  # último estado
-                'fechas_hora': fechas_hora,  # Devolver la lista de fecha completa
+                'fechas_hora': fechas_hora,  # Lista de fechas completas
+                'administradores': administradores  # Lista de administradores por estado
             }, status=200)
 
         except Exception as e:
-            return JsonResponse({'estado_trayectoria': 0, 'mensaje': 'Error al verificar la trayectoria'}, status=500)
+            return JsonResponse({'estado_trayectoria': 0, 'mensaje': f'Error al verificar la trayectoria: {str(e)}'}, status=500)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 

@@ -101,7 +101,7 @@ class Recojo_trayectoria(models.Model):
     estado_ingreso = models.DateTimeField()
     recojo = models.ForeignKey(Recojo, on_delete=models.CASCADE, null=True)
     trayectoria = models.ForeignKey(Trayectoria, on_delete=models.CASCADE, null=True)
-    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True)
+    administrador = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return f'{self.recojo}'
