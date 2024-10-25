@@ -71,7 +71,7 @@ def registrar_usuario(request):
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
-@csrf_exempt  # Desactiva la verificación CSRF (haz esto solo si es necesario)
+@csrf_exempt
 def generar_codigo_invitacion(request):
     if request.method == 'POST':
         try:
@@ -314,6 +314,41 @@ def iniciar_recojo(request):
 
         except Exception as e:
             return JsonResponse({'error': f'Error al iniciar el recojo: {str(e)}'}, status=500)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+@csrf_exempt
+def cancelar_recojo(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            usuario_id = data.get('usuario_id')
+            
+            # Validar que se haya enviado el usuario_id
+            if not usuario_id:
+                return JsonResponse({'error': 'Faltan campos obligatorios: usuario_id'}, status=400)
+
+            # Verificar que el usuario exista
+            usuario = Usuario.objects.filter(id=usuario_id).first()
+            if not usuario:
+                return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+            # Verificar si hay un recojo activo para el usuario
+            recojo_activo = Recojo.objects.filter(gestor_plan__usuario=usuario, activo=True).first()
+            if not recojo_activo:
+                return JsonResponse({'error': 'No hay recojos activos para cancelar.'}, status=400)
+
+            # Actualizar el estado del recojo a inactivo
+            recojo_activo.activo = False
+            recojo_activo.save()
+
+            return JsonResponse({
+                'mensaje': 'Recojo cancelado exitosamente',
+                'recojo_id': recojo_activo.id
+            }, status=200)
+
+        except Exception as e:
+            return JsonResponse({'error': f'Error al cancelar el recojo: {str(e)}'}, status=500)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
