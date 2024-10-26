@@ -342,9 +342,16 @@ def cancelar_recojo(request):
             recojo_activo.activo = False
             recojo_activo.save()
 
+            # Devolver el recojo cancelado al gestor de planes
+            gestor_plan = recojo_activo.gestor_plan
+            if gestor_plan:
+                gestor_plan.recojos_solicitados -= 1
+                gestor_plan.save()
+
             return JsonResponse({
-                'mensaje': 'Recojo cancelado exitosamente',
-                'recojo_id': recojo_activo.id
+                'mensaje': 'Recojo cancelado y devuelto exitosamente al gestor de planes',
+                'recojo_id': recojo_activo.id,
+                'recojos_solicitados': gestor_plan.recojos_solicitados
             }, status=200)
 
         except Exception as e:
