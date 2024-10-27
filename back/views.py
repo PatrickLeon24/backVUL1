@@ -458,6 +458,32 @@ def obtener_recojos(request):
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
 @csrf_exempt
+def obtener_recojos_por_administrador(request, usuario_id):
+    if request.method == 'GET':
+        try:
+            # Filtrar recojos finalizados relacionados con el administrador específico
+            recojos_finalizados = Recojo_trayectoria.objects.filter(
+                administrador_id=usuario_id,
+                trayectoria__estado='4'  # Estado finalizado
+            ).values(
+                'recojo__fecha_salida',
+                'recojo__gestor_plan__usuario__nombre', 
+                'recojo__gestor_plan__usuario__apellido', 
+                'recojo__gestor_plan__plan__nombre'
+            )
+
+            recojos_list = list(recojos_finalizados)  # Convertir el queryset a lista de diccionarios
+            print(recojos_list)
+
+            return JsonResponse(recojos_list, safe=False, status=200)
+
+        except Exception as e:
+            # Manejo de errores
+            return JsonResponse({'error': f'Error al obtener los recojos: {str(e)}'}, status=500)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+@csrf_exempt
 def obtener_puntaje_usuario(request, usuario_id):
     if request.method == 'GET':
         try:
