@@ -22,7 +22,7 @@ class CuponAdmin(admin.ModelAdmin):
 
 @admin.register(GestorCupon)
 class GestorCuponAdmin(admin.ModelAdmin):
-    list_display = ('id', 'usuario', 'cupon')
+    list_display = ('id', 'usuario', 'cupon', 'url_qr')
     search_fields = ('usuario__nombre', 'cupon__local')
 
 # Registro del modelo Trayectoria

@@ -7,6 +7,7 @@ from .services.pago_service import PagoService
 from .services.gestor_plan_service import GestorPlanService
 from .models import*
 import json
+import uuid
 from django.utils import timezone
 
 @csrf_exempt
@@ -155,18 +156,30 @@ def canjear_cupon(request):
             usuario = Usuario.objects.get(id=usuario_id)
             cupon = Cupon.objects.get(id=cupon_id)
 
-            # Descontar los puntos y registrar el canje sin verificaciones
+            # Verificar si el usuario tiene suficientes puntos
+            if usuario.puntaje_acumulado < cupon.costo_puntos:
+                return JsonResponse({'error': 'Puntos insuficientes para canjear el cupón'}, status=400)
+
+            # Verificar si el cupón está disponible
+            if cupon.disponibilidad <= 0:
+                return JsonResponse({'error': 'El cupón ya no está disponible'}, status=400)
+
+            # Descontar los puntos del usuario
             usuario.puntaje_acumulado -= cupon.costo_puntos
             usuario.save()
 
-            # Reducir la disponibilidad del cupón y guardarlo
+            # Reducir la disponibilidad del cupón
             cupon.disponibilidad -= 1
             cupon.save()
 
-            # Registrar el canje en el modelo GestorCupon
-            GestorCupon.objects.create(usuario=usuario, cupon=cupon)
+            # Generar una URL única para el código QR del canje
+            unique_id = uuid.uuid4()
+            url_qr = f"https://verdeulima.com/qr/{unique_id}"
 
-            return JsonResponse({'mensaje': 'Canje exitoso'}, status=200)
+            # Registrar el canje en el modelo GestorCupon con la URL del QR
+            GestorCupon.objects.create(usuario=usuario, cupon=cupon, url_qr=url_qr)
+
+            return JsonResponse({'mensaje': 'Canje exitoso', 'url_qr': url_qr}, status=200)
 
         except Usuario.DoesNotExist:
             return JsonResponse({'error': 'Usuario no encontrado'}, status=404)

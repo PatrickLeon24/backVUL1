@@ -40,6 +40,7 @@ class Cupon(models.Model):
 class GestorCupon(models.Model):
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True)
     cupon = models.ForeignKey(Cupon, on_delete=models.CASCADE, null=True)
+    url_qr = models.URLField(max_length=300, null=True, blank=True)
 
     def __str__(self):
         return f'{self.usuario} - {self.cupon}'
