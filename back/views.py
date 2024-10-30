@@ -144,6 +144,40 @@ def obtener_cupons(request):
     return JsonResponse({'error': 'Método no permitido.'}, status=405)
 
 @csrf_exempt
+def canjear_cupon(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            usuario_id = data.get('usuario_id')
+            cupon_id = data.get('cupon_id')
+            
+            # Obtener el usuario y el cupón
+            usuario = Usuario.objects.get(id=usuario_id)
+            cupon = Cupon.objects.get(id=cupon_id)
+
+            # Descontar los puntos y registrar el canje sin verificaciones
+            usuario.puntaje_acumulado -= cupon.costo_puntos
+            usuario.save()
+
+            # Reducir la disponibilidad del cupón y guardarlo
+            cupon.disponibilidad -= 1
+            cupon.save()
+
+            # Registrar el canje en el modelo GestorCupon
+            GestorCupon.objects.create(usuario=usuario, cupon=cupon)
+
+            return JsonResponse({'mensaje': 'Canje exitoso'}, status=200)
+
+        except Usuario.DoesNotExist:
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+        except Cupon.DoesNotExist:
+            return JsonResponse({'error': 'Cupón no encontrado'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+@csrf_exempt
 def guardar_cambio_contrasena(request):
     if request.method == 'POST':
         data = json.loads(request.body)

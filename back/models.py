@@ -34,7 +34,7 @@ class Cupon(models.Model):
     disponibilidad = models.IntegerField(default=0)
 
     def __str__(self):
-        return f'Cupón de {self.local} - {self.costo_puntos} puntos'
+        return f'Cupon de {self.local} - {self.costo_puntos} puntos'
 
 # Gestor Cupon
 class GestorCupon(models.Model):
