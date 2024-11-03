@@ -10,6 +10,8 @@ import json
 import uuid
 from django.utils import timezone
 from django.core.mail import send_mail
+import random
+import string
 @csrf_exempt
 def inicio_sesion(request):
     if request.method == 'POST':
@@ -619,7 +621,7 @@ def consultar_recojo(request):
 def send_email(request):
     if request.method == 'GET':
         # Datos estáticos
-        subject = 'Prueba de Correo'
+        subject = 'Prueba de lelele'
         message = 'Este es un mensaje de prueba.'
         recipient = '20214404@aloe.ulima.edu.pe'  # Reemplaza con el email fijo que deseas usar
 
@@ -636,3 +638,56 @@ def send_email(request):
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+
+def generar_token(length=10):
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+
+
+@csrf_exempt
+def enviar_token(request):
+    if request.method == 'POST':
+        usuario_id = request.data.get('usuario_id')
+        
+        try:
+            usuario = Usuario.objects.get(id=usuario_id)
+        except Usuario.DoesNotExist:
+            return JsonResponse({'error': 'Usuario no encontrado.'}, status=404)
+
+        token = generar_token()
+        nuevo_token = Token(usuario=usuario, token=token, activo=True)
+        nuevo_token.save()
+
+        # Enviar el correo
+        send_mail(
+            'Solicitud de recuperación de contraseña',
+            f'Su token de recuperación es: {token}',
+            'verdeulima@gmail.com',  # Cambia esto por tu dirección de correo
+            [usuario.email],
+            fail_silently=False,
+        )
+        
+        return JsonResponse({'message': 'Token enviado al correo del usuario.'}, status=200)
+    
+
+def cambiar_contrasena(request):
+    if request.method == 'POST':
+        usuario_id = request.data.get('usuario_id')
+        token_recibido = request.data.get('token')
+        nueva_contrasena = request.data.get('nueva_contrasena')
+
+        try:
+            usuario = Usuario.objects.get(id=usuario_id)
+            token = Token.objects.get(usuario=usuario, token=token_recibido, activo=True)
+        except (Usuario.DoesNotExist, Token.DoesNotExist):
+            return JsonResponse({'error': 'Token no válido o usuario no encontrado.'}, status=404)
+
+        # Cambiar la contraseña
+        usuario.contrasena = nueva_contrasena  # Considera usar un hash para la contraseña
+        usuario.save()
+
+        # Desactivar el token después de su uso
+        token.activo = False
+        token.save()
+
+        return JsonResponse({'message': 'Contraseña cambiada exitosamente.'}, status=200)
