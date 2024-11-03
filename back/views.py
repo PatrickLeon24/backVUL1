@@ -9,7 +9,7 @@ from .models import*
 import json
 import uuid
 from django.utils import timezone
-
+from django.core.mail import send_mail
 @csrf_exempt
 def inicio_sesion(request):
     if request.method == 'POST':
@@ -614,3 +614,25 @@ def consultar_recojo(request):
             return JsonResponse({'status': 'error', 'message': 'JSON inválido'}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
 
+#######sprint2
+@csrf_exempt
+def send_email(request):
+    if request.method == 'GET':
+        # Datos estáticos
+        subject = 'Prueba de Correo'
+        message = 'Este es un mensaje de prueba.'
+        recipient = '20214404@aloe.ulima.edu.pe'  # Reemplaza con el email fijo que deseas usar
+
+        try:
+            send_mail(
+                subject,
+                message,
+                'verdeulima@gmail.com',     # Remitente (debe coincidir con EMAIL_HOST_USER)
+                [recipient],              # Lista de destinatarios
+                fail_silently=False,
+            )
+            return JsonResponse({'message': 'Correo enviado exitosamente.'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)

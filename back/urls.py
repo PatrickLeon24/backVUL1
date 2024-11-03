@@ -19,5 +19,6 @@ urlpatterns = [
     path('historial_recojos/<int:usuario_id>/', views.obtener_recojos_por_administrador),    
     path('puntos/<int:usuario_id>/', views.obtener_puntaje_usuario),
     path('consultar_recojo', views.consultar_recojo),
-    path('generar', views.generar_codigo_invitacion)
+    path('generar', views.generar_codigo_invitacion),
+    path('enviarEmail', views.send_email),
     ]

@@ -65,3 +65,9 @@ class RecojoTrayectoriaAdmin(admin.ModelAdmin):
 @admin.register(CodigoInvitacion)
 class CodigoInvitacionAdmin(admin.ModelAdmin):
     list_display = ('id', 'codigo', 'utilizado', 'creado_por', 'fecha_creacion')
+    
+@admin.register(Token)
+class TokenAdmin(admin.ModelAdmin):
+    list_display = ('id', 'usuario', 'token', 'fecha_creacion', 'activo')
+    search_fields = ('usuario__nombre', 'usuario__apellido', 'token')
+    list_filter = ('activo',)

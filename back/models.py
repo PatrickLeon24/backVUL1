@@ -116,3 +116,20 @@ class CodigoInvitacion(models.Model):
 
     def __str__(self):
         return self.codigo
+    
+# Token
+class Token(models.Model):
+    # Relación con Usuario
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    
+    # Generación de un token único
+    token = models.CharField(max_length=10, unique=True)
+
+    # Fecha de creación del token
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    activo = models.BooleanField(default=False)
+
+
+    def __str__(self):
+        return f'Token de {self.usuario} - {self.token}'
