@@ -647,10 +647,11 @@ def generar_token(length=10):
 @csrf_exempt
 def enviar_token(request):
     if request.method == 'POST':
-        usuario_id = request.data.get('usuario_id')
+        data = json.loads(request.body)
+        email = data.get('correo')
         
         try:
-            usuario = Usuario.objects.get(id=usuario_id)
+            usuario = Usuario.objects.get(email=email)
         except Usuario.DoesNotExist:
             return JsonResponse({'error': 'Usuario no encontrado.'}, status=404)
 
@@ -669,15 +670,16 @@ def enviar_token(request):
         
         return JsonResponse({'message': 'Token enviado al correo del usuario.'}, status=200)
     
-
+@csrf_exempt
 def cambiar_contrasena(request):
     if request.method == 'POST':
-        usuario_id = request.data.get('usuario_id')
-        token_recibido = request.data.get('token')
-        nueva_contrasena = request.data.get('nueva_contrasena')
+        data = json.loads(request.body)
+        email = data.get('correo')
+        token_recibido = data.get('token')
+        nueva_contrasena = data.get('nueva_contrasena')
 
         try:
-            usuario = Usuario.objects.get(id=usuario_id)
+            usuario = Usuario.objects.get(email=email)
             token = Token.objects.get(usuario=usuario, token=token_recibido, activo=True)
         except (Usuario.DoesNotExist, Token.DoesNotExist):
             return JsonResponse({'error': 'Token no válido o usuario no encontrado.'}, status=404)

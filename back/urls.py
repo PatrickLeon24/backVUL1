@@ -21,5 +21,6 @@ urlpatterns = [
     path('consultar_recojo', views.consultar_recojo),
     path('generar', views.generar_codigo_invitacion),
     path('enviarEmail', views.send_email),
-    path('enviar_token', views.enviar_token)
+    path('enviar_token', views.enviar_token),
+    path('cambiar_contrasena', views.cambiar_contrasena),
     ]
