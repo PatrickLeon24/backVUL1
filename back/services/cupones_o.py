@@ -14,6 +14,7 @@ class CuponesO:
                 "descripcion": cupon.descripcion,
                 "descuento": cupon.descuento,
                 "imagen": cupon.imagen,
+                "disponibilidad": cupon.disponibilidad,
             }
             cuponesData.append(cupon_data)
         return cuponesData

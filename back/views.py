@@ -12,6 +12,7 @@ from django.utils import timezone
 from django.core.mail import send_mail
 import random
 import string
+
 @csrf_exempt
 def inicio_sesion(request):
     if request.method == 'POST':
@@ -75,27 +76,6 @@ def registrar_usuario(request):
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
 @csrf_exempt
-def generar_codigo_invitacion(request):
-    if request.method == 'POST':
-        try:
-            # Lee el cuerpo JSON de la solicitud
-            data = json.loads(request.body)
-            admin_id = data.get('admin_id')
-
-            # Busca al administrador en la base de datos
-            usuario_admin = Usuario.objects.get(id=admin_id)  # Asegúrate de que esto esté bien manejado
-
-            # Llama al método estático de tu servicio pasando el usuario_admin
-            codigo = UsuarioAdminService.generar_codigo_invitacion(usuario_admin)
-            return JsonResponse({'codigo': codigo}, status=200)
-        except Usuario.DoesNotExist:
-            return JsonResponse({'error': 'Administrador no encontrado'}, status=404)
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-
-    return JsonResponse({'error': 'Método no permitido'}, status=405)
-
-@csrf_exempt
 def obtener_tipos_usuario(request):
     if request.method == 'GET':
         tipos_usuario = Tipo_Usuario.objects.all().values('id', 'tipo')
@@ -145,52 +125,6 @@ def obtener_cupons(request):
         return JsonResponse(cuponesData, safe=False)
     
     return JsonResponse({'error': 'Método no permitido.'}, status=405)
-
-@csrf_exempt
-def canjear_cupon(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            usuario_id = data.get('usuario_id')
-            cupon_id = data.get('cupon_id')
-            
-            # Obtener el usuario y el cupón
-            usuario = Usuario.objects.get(id=usuario_id)
-            cupon = Cupon.objects.get(id=cupon_id)
-
-            # Verificar si el usuario tiene suficientes puntos
-            if usuario.puntaje_acumulado < cupon.costo_puntos:
-                return JsonResponse({'error': 'Puntos insuficientes para canjear el cupón'}, status=400)
-
-            # Verificar si el cupón está disponible
-            if cupon.disponibilidad <= 0:
-                return JsonResponse({'error': 'El cupón ya no está disponible'}, status=400)
-
-            # Descontar los puntos del usuario
-            usuario.puntaje_acumulado -= cupon.costo_puntos
-            usuario.save()
-
-            # Reducir la disponibilidad del cupón
-            cupon.disponibilidad -= 1
-            cupon.save()
-
-            # Generar una URL única para el código QR del canje
-            unique_id = uuid.uuid4()
-            url_qr = f"https://verdeulima.com/qr/{unique_id}"
-
-            # Registrar el canje en el modelo GestorCupon con la URL del QR
-            GestorCupon.objects.create(usuario=usuario, cupon=cupon, url_qr=url_qr)
-
-            return JsonResponse({'mensaje': 'Canje exitoso', 'url_qr': url_qr}, status=200)
-
-        except Usuario.DoesNotExist:
-            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
-        except Cupon.DoesNotExist:
-            return JsonResponse({'error': 'Cupón no encontrado'}, status=404)
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-
-    return JsonResponse({'error': 'Método no permitido'}, status=405)
 
 @csrf_exempt
 def guardar_cambio_contrasena(request):
@@ -507,32 +441,6 @@ def obtener_recojos(request):
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
 @csrf_exempt
-def obtener_recojos_por_administrador(request, usuario_id):
-    if request.method == 'GET':
-        try:
-            # Filtrar recojos finalizados relacionados con el administrador específico
-            recojos_finalizados = Recojo_trayectoria.objects.filter(
-                administrador_id=usuario_id,
-                trayectoria__estado='4'  # Estado finalizado
-            ).values(
-                'recojo__fecha_salida',
-                'recojo__gestor_plan__usuario__nombre', 
-                'recojo__gestor_plan__usuario__apellido', 
-                'recojo__gestor_plan__plan__nombre'
-            )
-
-            recojos_list = list(recojos_finalizados)  # Convertir el queryset a lista de diccionarios
-            print(recojos_list)
-
-            return JsonResponse(recojos_list, safe=False, status=200)
-
-        except Exception as e:
-            # Manejo de errores
-            return JsonResponse({'error': f'Error al obtener los recojos: {str(e)}'}, status=500)
-
-    return JsonResponse({'error': 'Método no permitido'}, status=405)
-
-@csrf_exempt
 def obtener_puntaje_usuario(request, usuario_id):
     if request.method == 'GET':
         try:
@@ -669,7 +577,6 @@ def enviar_token(request):
         
         return JsonResponse({'message': 'Token enviado al correo del usuario.'}, status=200)
     
-
 def cambiar_contrasena(request):
     if request.method == 'POST':
         usuario_id = request.data.get('usuario_id')
@@ -691,3 +598,123 @@ def cambiar_contrasena(request):
         token.save()
 
         return JsonResponse({'message': 'Contraseña cambiada exitosamente.'}, status=200)
+
+@csrf_exempt
+def canjear_cupon(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            usuario_id = data.get('usuario_id')
+            cupon_id = data.get('cupon_id')
+            
+            # Obtener el usuario y el cupón
+            usuario = Usuario.objects.get(id=usuario_id)
+            cupon = Cupon.objects.get(id=cupon_id)
+
+            # Verificar si el usuario tiene suficientes puntos
+            if usuario.puntaje_acumulado < cupon.costo_puntos:
+                return JsonResponse({'error': 'Puntos insuficientes para canjear el cupón'}, status=400)
+
+            # Verificar si el cupón está disponible
+            if cupon.disponibilidad <= 0:
+                return JsonResponse({'error': 'El cupón ya no está disponible'}, status=400)
+
+            # Descontar los puntos del usuario
+            usuario.puntaje_acumulado -= cupon.costo_puntos
+            usuario.save()
+
+            # Reducir la disponibilidad del cupón
+            cupon.disponibilidad -= 1
+            cupon.save()
+
+            # Generar una URL única para el código QR del canje
+            unique_id = uuid.uuid4()
+            url_qr = f"https://verdeulima.com/qr/{unique_id}"
+
+            fecha_canje = timezone.now().date()
+
+            # Registrar el canje en el modelo GestorCupon con la URL del QR
+            GestorCupon.objects.create(usuario=usuario, cupon=cupon, url_qr=url_qr, fecha_canje=fecha_canje)
+
+            return JsonResponse({'mensaje': 'Canje exitoso', 'url_qr': url_qr}, status=200)
+
+        except Usuario.DoesNotExist:
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+        except Cupon.DoesNotExist:
+            return JsonResponse({'error': 'Cupón no encontrado'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+@csrf_exempt
+def obtener_recojos_por_administrador(request, usuario_id):
+    if request.method == 'GET':
+        try:
+            # Filtrar recojos finalizados relacionados con el administrador específico
+            recojos_finalizados = Recojo_trayectoria.objects.filter(
+                administrador_id=usuario_id,
+                trayectoria__estado='4'
+            ).values(
+                'recojo__fecha_salida',
+                'recojo__gestor_plan__usuario__nombre', 
+                'recojo__gestor_plan__usuario__apellido', 
+                'recojo__gestor_plan__plan__nombre'
+            )
+
+            recojos_list = list(recojos_finalizados)
+            print(recojos_list)
+
+            return JsonResponse(recojos_list, safe=False, status=200)
+
+        except Exception as e:
+            # Manejo de errores
+            return JsonResponse({'error': f'Error al obtener los recojos: {str(e)}'}, status=500)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+@csrf_exempt
+def generar_codigo_invitacion(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            admin_id = data.get('admin_id')
+      
+            usuario_admin = Usuario.objects.get(id=admin_id) 
+            
+            codigo = UsuarioAdminService.generar_codigo_invitacion(usuario_admin)
+            return JsonResponse({'codigo': codigo}, status=200)
+        except Usuario.DoesNotExist:
+            return JsonResponse({'error': 'Administrador no encontrado'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+@csrf_exempt
+def obtener_codigos_invitacion(request, usuario_id):
+    if request.method == 'GET':
+        try:
+            # Verificar si el administrador existe
+            usuario_admin = Usuario.objects.get(id=usuario_id)
+
+            # Filtrar los códigos de invitación generados por este administrador
+            codigos_invitacion = CodigoInvitacion.objects.filter(creado_por=usuario_admin)
+
+            # Crear la respuesta JSON manualmente
+            codigos_data = [
+                {
+                    'codigo': codigo.codigo,
+                    'utilizado': codigo.utilizado,
+                    'fecha_creacion': codigo.fecha_creacion.strftime('%Y-%m-%d') 
+                } for codigo in codigos_invitacion
+            ]
+
+            return JsonResponse(codigos_data, safe=False, status=200)
+
+        except Usuario.DoesNotExist:
+            return JsonResponse({'error': 'Administrador no encontrado'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
