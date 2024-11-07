@@ -72,6 +72,18 @@ class UsuarioAdminService(UsuarioService):
         return usuarios_con_recojos
 
     @staticmethod
+    def obtener_usuarios_con_recojosus(user_id):
+    # Obtiene todos los usuarios que tienen un recojo activo filtrando por user_id
+        usuarios_con_recojos = Usuario.objects.filter(
+            id=user_id,
+            gestorplan__recojo__activo=False,
+            gestorplan__recojo__recojo_trayectoria__trayectoria__estado =4
+            
+            
+        )
+        return usuarios_con_recojos
+
+    @staticmethod
     def generar_codigo_invitacion(usuario_admin):
         codigo = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))  # Genera un código aleatorio
         nuevo_codigo = CodigoInvitacion(codigo=codigo, creado_por=usuario_admin)

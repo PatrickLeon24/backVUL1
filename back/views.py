@@ -723,6 +723,31 @@ def obtener_codigos_invitacion(request, usuario_id):
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
 @csrf_exempt
+def obtener_recojosus(request, usuario_id):
+    if request.method == 'GET':
+        user_id = usuario_id
+
+        try:
+            # Filtrar por usuario específico y recojos activos
+            usuarios_data = list(UsuarioAdminService.obtener_usuarios_con_recojosus(user_id).values(
+                'id', 'nombre', 'apellido', 'direccion', 'numero_contacto', 'DNI',
+                'gestorplan__plan__nombre',
+                'gestorplan__recojo__id',
+                'gestorplan__recojo__fecha_ingreso',
+                'gestorplan__recojo__fecha_salida',
+                'gestorplan__recojo__recojo_trayectoria__trayectoria__estado',
+                'gestorplan__recojo__recojo_trayectoria__id'
+            ))
+
+            # Diccionario para almacenar el último recojo por usuario
+            return JsonResponse(usuarios_data, safe=False, status=200)
+        except Exception as e:
+            return JsonResponse({'error': f'Error al obtener los usuarios con recojo: {str(e)}'}, status=500)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+
+@csrf_exempt
 def obtener_historial_cupones(request, usuario_id):
     try:
         # Obtiene los cupones canjeados por el usuario dado
