@@ -301,48 +301,6 @@ def iniciar_recojo(request):
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
 @csrf_exempt
-def cancelar_recojo(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            usuario_id = data.get('usuario_id')
-            
-            # Validar que se haya enviado el usuario_id
-            if not usuario_id:
-                return JsonResponse({'error': 'Faltan campos obligatorios: usuario_id'}, status=400)
-
-            # Verificar que el usuario exista
-            usuario = Usuario.objects.filter(id=usuario_id).first()
-            if not usuario:
-                return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
-
-            # Verificar si hay un recojo activo para el usuario
-            recojo_activo = Recojo.objects.filter(gestor_plan__usuario=usuario, activo=True).first()
-            if not recojo_activo:
-                return JsonResponse({'error': 'No hay recojos activos para cancelar.'}, status=400)
-
-            # Actualizar el estado del recojo a inactivo
-            recojo_activo.activo = False
-            recojo_activo.save()
-
-            # Devolver el recojo cancelado al gestor de planes
-            gestor_plan = recojo_activo.gestor_plan
-            if gestor_plan:
-                gestor_plan.recojos_solicitados -= 1
-                gestor_plan.save()
-
-            return JsonResponse({
-                'mensaje': 'Recojo cancelado y devuelto exitosamente al gestor de planes',
-                'recojo_id': recojo_activo.id,
-                'recojos_solicitados': gestor_plan.recojos_solicitados
-            }, status=200)
-
-        except Exception as e:
-            return JsonResponse({'error': f'Error al cancelar el recojo: {str(e)}'}, status=500)
-
-    return JsonResponse({'error': 'Método no permitido'}, status=405)
-
-@csrf_exempt
 def verificar_trayectoria_recojo(request):
     if request.method == 'POST':
         try:
@@ -491,7 +449,8 @@ def consultar_recojo(request):
                 R_tN = Recojo_trayectoria.objects.create(
                     estado_ingreso=timezone.localtime(),
                     recojo=recojo,
-                    trayectoria=trayectoria_obj
+                    trayectoria=trayectoria_obj,
+                    administrador=administrador
                 )
             elif int(trayecto.estado) == 2:
                 trayectoria_obj = Trayectoria.objects.get(id=3)
@@ -723,6 +682,57 @@ def obtener_codigos_invitacion(request, usuario_id):
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
 @csrf_exempt
+def cancelar_recojo(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            usuario_id = data.get('usuario_id')
+            
+            # Validar que se haya enviado el usuario_id
+            if not usuario_id:
+                return JsonResponse({'error': 'Faltan campos obligatorios: usuario_id'}, status=400)
+
+            # Verificar que el usuario exista
+            usuario = Usuario.objects.filter(id=usuario_id).first()
+            if not usuario:
+                return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+            # Verificar si hay un recojo activo para el usuario
+            recojo_activo = Recojo.objects.filter(gestor_plan__usuario=usuario, activo=True).first()
+            if not recojo_activo:
+                return JsonResponse({'error': 'No hay recojos activos para cancelar.'}, status=400)
+
+            # Obtener la última trayectoria asociada al recojo
+            ultima_trayectoria = Recojo_trayectoria.objects.filter(recojo=recojo_activo).order_by('id').last()
+
+            # Verificar que la última trayectoria tenga estado "1"
+            if ultima_trayectoria.trayectoria.estado != '1':
+                return JsonResponse({'error': 'El recojo no se puede cancelar porque ya se superó el primer estado.'}, status=400)
+
+            # Actualizar el estado del recojo a inactivo
+            recojo_activo.activo = False
+            recojo_activo.save()
+
+            # Devolver el recojo cancelado al gestor de planes
+            gestor_plan = recojo_activo.gestor_plan
+            if gestor_plan:
+                gestor_plan.recojos_solicitados -= 1
+                gestor_plan.save()
+
+            return JsonResponse({
+                'mensaje': 'Recojo cancelado y devuelto exitosamente al gestor de planes',
+                'recojo_id': recojo_activo.id,
+                'recojos_solicitados': gestor_plan.recojos_solicitados
+            }, status=200)
+
+        except Exception as e:
+            return JsonResponse({'error': f'Error al cancelar el recojo: {str(e)}'}, status=500)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+
+
+@csrf_exempt
 def obtener_recojosus(request, usuario_id):
     if request.method == 'GET':
         user_id = usuario_id
@@ -745,7 +755,6 @@ def obtener_recojosus(request, usuario_id):
             return JsonResponse({'error': f'Error al obtener los usuarios con recojo: {str(e)}'}, status=500)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
-
 
 @csrf_exempt
 def obtener_historial_cupones(request, usuario_id):
