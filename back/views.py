@@ -484,6 +484,55 @@ def consultar_recojo(request):
     return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
 
 #######sprint2
+
+@csrf_exempt
+
+def consultar_recojoR(request):
+    if request.method == 'POST':
+        try:
+            body = json.loads(request.body)
+            recojo_id = body.get('recojo_id')
+            admin_id = body.get('admin_id')
+
+            administrador = Usuario.objects.filter(id=admin_id).first()
+            if not administrador:
+                return JsonResponse({'error': 'Administrador no encontrado'}, status=404)
+
+            usuario = Usuario.objects.filter(id=recojo_id).first()
+            if not usuario:
+                return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+            gestor_plan = GestorPlan.objects.filter(usuario=usuario).last()
+            if not gestor_plan:
+                return JsonResponse({'error': 'No se encontró un plan asociado para el usuario'}, status=404)
+
+            recojo = Recojo.objects.filter(gestor_plan=gestor_plan, activo=True).last()
+            if not recojo:
+                return JsonResponse({'error': 'No se encontró un recojo activo para el usuario'}, status=404)
+
+            r_t = Recojo_trayectoria.objects.filter(recojo=recojo).last()
+            if not r_t:
+                return JsonResponse({'error': 'No se encontró una trayectoria asociada al recojo'}, status=404)
+
+            trayecto = r_t.trayectoria
+
+            # Retroceder el estado si es mayor que 1
+            if int(trayecto.estado) > 1:
+                estado=int(trayecto.estado)-1
+                trayectoria_obj = Trayectoria.objects.get(id=estado)
+                R_tN = Recojo_trayectoria.objects.create(
+                    estado_ingreso=timezone.localtime(),
+                    recojo=recojo,
+                    trayectoria=trayectoria_obj,
+                    administrador=administrador
+                )
+                return JsonResponse({'status': 'success', 'message': 'Estado retrocedido correctamente.'}, status=200)
+            else:
+                return JsonResponse({'error': 'El estado no puede retroceder más.'}, status=400)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'JSON inválido'}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
 @csrf_exempt
 def send_email(request):
     if request.method == 'GET':

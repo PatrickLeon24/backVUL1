@@ -26,5 +26,5 @@ urlpatterns = [
     path('cambiar_contrasena', views.cambiar_contrasena),
     path('historial_cupones/<int:usuario_id>/', views.obtener_historial_cupones),
     path('obtener_recojosus/<int:usuario_id>/', views.obtener_recojosus),
-
+    path('retroceder_estado', views.consultar_recojoR),
     ]
