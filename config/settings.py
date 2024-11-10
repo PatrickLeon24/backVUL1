@@ -1,4 +1,3 @@
-import os
 """
 Django settings for config project.
 
@@ -26,7 +25,7 @@ SECRET_KEY = 'django-insecure-zt&saw658*ku^-x2-%l^djx1g8i+bftln9j*e0woh#bgbcw$&s
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', 'verdeulima.azurewebsites.net', 'verdeulima.postgres.database.azure.com']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.18.12', "10.48.201.68"] # PONER IP DE TU PC
 
 
 # Application definition
@@ -43,7 +42,6 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -53,11 +51,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
 ]
-CORS_ALLOWED_ORIGINS = [ 'http://localhost:8081', 'https://verdeulima.azurewebsites.net']
-
-CSRF_TRUSTED_ORIGINS = [
-   'http://localhost:8081', 'https://verdeulima.azurewebsites.net'
-]
+CORS_ALLOWED_ORIGINS = [ "http://localhost:8081", "exp://192.168.18.12:8081" , "http://192.168.18.12:8000" ] # PONER IP DE TU PC
 
 ROOT_URLCONF = 'config.urls'
 
@@ -87,9 +81,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'verdeulimadb',  # Reemplaza con el nombre de tu base de datos
-        'USER': 'daniel',                  # Reemplaza con tu nombre de usuario de PostgreSQL
-        'PASSWORD': 'Hola1234',            # Reemplaza con tu contraseña de PostgreSQL
-        'HOST': 'verdeulima.postgres.database.azure.com',  # O la dirección de tu servidor de base de datos
+        'USER': 'verde_ulima',                  # Reemplaza con tu nombre de usuario de PostgreSQL
+        'PASSWORD': 'contra123',            # Reemplaza con tu contraseña de PostgreSQL
+        'HOST': '127.0.0.1',                    # O la dirección de tu servidor de base de datos
         'PORT': '5432',                         # Puerto de PostgreSQL (por defecto es 5432)
     }
 }
@@ -136,8 +130,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
