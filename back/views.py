@@ -313,12 +313,15 @@ def verificar_trayectoria_recojo(request):
 
             # Verificar que el usuario exista
             usuario = Usuario.objects.filter(id=usuario_id).first()
+            print("ola1")
             if not usuario:
                 return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
 
             # Obtener el gestor de plan del usuario
             gestor_plan = GestorPlan.objects.filter(usuario=usuario).last()
+            print("ola2")
             if not gestor_plan:
+                print("ola")
                 return JsonResponse({'error': 'No se encontró un plan asociado para el usuario'}, status=404)
 
             recojo = Recojo.objects.filter(gestor_plan=gestor_plan, activo=True).last()
@@ -792,7 +795,22 @@ def verificar_recojo_activo(request, usuario_id):
     if request.method == 'POST':
         try:
             # Buscar un recojo activo para el usuario
+            usuario = Usuario.objects.filter(id=usuario_id).first()
+            print("ola1")
+            if not usuario:
+                return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+            # Obtener el gestor de plan del usuario
+            gestor_plan = GestorPlan.objects.filter(usuario=usuario).last()
+            print("ola2")
+            if not gestor_plan:
+                print("ola")
+                return JsonResponse({'error': 'No se encontró un plan asociado para el usuario'}, status=404)
+
+           
+            
             recojo_activo = Recojo.objects.filter(gestor_plan__usuario__id=usuario_id, activo=True).exists()
+            print(recojo_activo)
             return JsonResponse({'recojo_activo': recojo_activo})
         except Recojo.DoesNotExist:
             return JsonResponse({'recojo_activo': False})
