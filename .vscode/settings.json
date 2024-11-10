@@ -1,0 +1,4 @@
+{
+    "appService.defaultWebAppToDeploy": "/subscriptions/a62b8aa7-207b-46ec-831a-d73808b3eed0/resourceGroups/appsvc_linux_centralus/providers/Microsoft.Web/sites/verdeulima",
+    "appService.deploySubpath": "."
+}
