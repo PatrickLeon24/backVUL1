@@ -1,4 +1,4 @@
-from back.models import Usuario, CodigoInvitacion
+from back.models import Usuario, CodigoInvitacion, Token
 import random
 import string
 class UsuarioService:
@@ -43,6 +43,32 @@ class UsuarioService:
         usuario.save()
         return usuario
 
+    @staticmethod
+    def cambiar_contrasena_con_token(email, token_recibido, nueva_contrasena):
+        usuario = Usuario.objects.filter(email=email).first()
+        
+        if not usuario:
+            return {'error': 'Usuario no encontrado.'}
+
+        # Verifica el token
+        token = Token.objects.filter(usuario=usuario, token=token_recibido, activo=True).first()
+        if not token:
+            return {'error': 'Token no válido o caducado.'}
+
+        # Verifica que la nueva contraseña cumpla los requisitos
+        if not UsuarioService.verificar_contrasena(nueva_contrasena):
+            return {'error': 'La contraseña nueva no cumple los requisitos de seguridad.'}
+
+        # Cambia la contraseña del usuario
+        usuario.contrasena = nueva_contrasena
+        usuario.save()
+
+        # Desactiva el token después de usarlo
+        token.activo = False
+        token.save()
+
+        return {'message': 'Contraseña cambiada exitosamente.'}
+
 class UsuarioAdminService(UsuarioService):
     @staticmethod
     def verificar_credenciales(email, contrasena):
@@ -69,18 +95,6 @@ class UsuarioAdminService(UsuarioService):
     def obtener_usuarios_con_recojos():
         # Obtiene todos los usuarios que tienen un recojo activo
         usuarios_con_recojos = Usuario.objects.filter(gestorplan__recojo__activo=True)
-        return usuarios_con_recojos
-
-    @staticmethod
-    def obtener_usuarios_con_recojosus(user_id):
-    # Obtiene todos los usuarios que tienen un recojo activo filtrando por user_id
-        usuarios_con_recojos = Usuario.objects.filter(
-            id=user_id,
-            gestorplan__recojo__activo=False,
-            gestorplan__recojo__recojo_trayectoria__trayectoria__estado =4
-            
-            
-        )
         return usuarios_con_recojos
 
     @staticmethod
@@ -114,6 +128,18 @@ class UsuarioClienteService(UsuarioService):
             "tipousuario": user.tipousuario.tipo
         }
 
+    @staticmethod
+    def obtener_usuarios_con_recojosus(user_id):
+    # Obtiene todos los usuarios que tienen un recojo activo filtrando por user_id
+        usuarios_con_recojos = Usuario.objects.filter(
+            id=user_id,
+            gestorplan__recojo__activo=False,
+            gestorplan__recojo__recojo_trayectoria__trayectoria__estado =4
+            
+            
+        )
+        return usuarios_con_recojos
+    
 class UsuarioServiceFactory:
     @staticmethod
     def get_usuario_service(tipo_usuario):
