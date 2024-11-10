@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-zt&saw658*ku^-x2-%l^djx1g8i+bftln9j*e0woh#bgbcw$&s
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', 'verdeulima.azurewebsites.net', 'verdeulima.postgres.database.azure.com']
+ALLOWED_HOSTS = ['localhost', 'API', 'HOST_POSTGRES']
 
 
 # Application definition
@@ -53,10 +53,10 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
 ]
-CORS_ALLOWED_ORIGINS = [ 'http://localhost:8081', 'https://verdeulima.azurewebsites.net']
+CORS_ALLOWED_ORIGINS = [ 'http://localhost:8081', 'https://API']
 
 CSRF_TRUSTED_ORIGINS = [
-   'http://localhost:8081', 'https://verdeulima.azurewebsites.net'
+   'http://localhost:8081', 'https://API'
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -89,7 +89,7 @@ DATABASES = {
         'NAME': 'verdeulimadb',  # Reemplaza con el nombre de tu base de datos
         'USER': 'daniel',                  # Reemplaza con tu nombre de usuario de PostgreSQL
         'PASSWORD': 'Hola1234',            # Reemplaza con tu contraseña de PostgreSQL
-        'HOST': 'verdeulima.postgres.database.azure.com',  # O la dirección de tu servidor de base de datos
+        'HOST': 'HOST_POSTGRES',  # O la dirección de tu servidor de base de datos
         'PORT': '5432',                         # Puerto de PostgreSQL (por defecto es 5432)
     }
 }
