@@ -1,13 +1,13 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .services.usuario_service import UsuarioService, UsuarioAdminService, UsuarioServiceFactory
+from .services.usuario_service import UsuarioService, UsuarioAdminService, UsuarioServiceFactory, UsuarioClienteService
 from .services.plan_service import PlanService
 from .services.cupones_o import CuponesO
 from .services.pago_service import PagoService
 from .services.gestor_plan_service import GestorPlanService
+from .services.gestor_cupon_service import GestorCuponService
 from .models import*
 import json
-import uuid
 from django.utils import timezone
 from django.core.mail import send_mail
 import random
@@ -533,6 +533,7 @@ def consultar_recojoR(request):
         except json.JSONDecodeError:
             return JsonResponse({'status': 'error', 'message': 'JSON inválido'}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
+
 @csrf_exempt
 def send_email(request):
     if request.method == 'GET':
@@ -555,10 +556,8 @@ def send_email(request):
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
-
 def generar_token(length=10):
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
-
 
 @csrf_exempt
 def enviar_token(request):
@@ -594,67 +593,29 @@ def cambiar_contrasena(request):
         token_recibido = data.get('token')
         nueva_contrasena = data.get('nueva_contrasena')
 
-        try:
-            usuario = Usuario.objects.get(email=email)
-            token = Token.objects.get(usuario=usuario, token=token_recibido, activo=True)
-        except (Usuario.DoesNotExist, Token.DoesNotExist):
-            return JsonResponse({'error': 'Token no válido o usuario no encontrado.'}, status=404)
+        # Utilizar el método en UsuarioService para cambiar la contraseña
+        resultado = UsuarioService.cambiar_contrasena_con_token(email, token_recibido, nueva_contrasena)
 
-        # Cambiar la contraseña
-        usuario.contrasena = nueva_contrasena  # Considera usar un hash para la contraseña
-        usuario.save()
-
-        # Desactivar el token después de su uso
-        token.activo = False
-        token.save()
-
-        return JsonResponse({'message': 'Contraseña cambiada exitosamente.'}, status=200)
+        # Verificar el resultado y devolver la respuesta adecuada
+        if 'error' in resultado:
+            return JsonResponse({'error': resultado['error']}, status=400)
+        
+        return JsonResponse({'message': resultado['message']}, status=200)
 
 @csrf_exempt
 def canjear_cupon(request):
     if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            usuario_id = data.get('usuario_id')
-            cupon_id = data.get('cupon_id')
-            
-            # Obtener el usuario y el cupón
-            usuario = Usuario.objects.get(id=usuario_id)
-            cupon = Cupon.objects.get(id=cupon_id)
+        data = json.loads(request.body)
+        usuario_id = data.get('usuario_id')
+        cupon_id = data.get('cupon_id')
+        
+        # Llamar al método de servicio para canjear el cupón
+        resultado = GestorCuponService.canjear_cupon(usuario_id, cupon_id)
 
-            # Verificar si el usuario tiene suficientes puntos
-            if usuario.puntaje_acumulado < cupon.costo_puntos:
-                return JsonResponse({'error': 'Puntos insuficientes para canjear el cupón'}, status=400)
-
-            # Verificar si el cupón está disponible
-            if cupon.disponibilidad <= 0:
-                return JsonResponse({'error': 'El cupón ya no está disponible'}, status=400)
-
-            # Descontar los puntos del usuario
-            usuario.puntaje_acumulado -= cupon.costo_puntos
-            usuario.save()
-
-            # Reducir la disponibilidad del cupón
-            cupon.disponibilidad -= 1
-            cupon.save()
-
-            # Generar una URL única para el código QR del canje
-            unique_id = uuid.uuid4()
-            url_qr = f"https://verdeulima.com/qr/{unique_id}"
-
-            fecha_canje = timezone.now().date()
-
-            # Registrar el canje en el modelo GestorCupon con la URL del QR
-            GestorCupon.objects.create(usuario=usuario, cupon=cupon, url_qr=url_qr, fecha_canje=fecha_canje)
-
-            return JsonResponse({'mensaje': 'Canje exitoso', 'url_qr': url_qr}, status=200)
-
-        except Usuario.DoesNotExist:
-            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
-        except Cupon.DoesNotExist:
-            return JsonResponse({'error': 'Cupón no encontrado'}, status=404)
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+        # Responder según el resultado
+        if 'error' in resultado:
+            return JsonResponse({'error': resultado['error']}, status=400 if resultado['error'] != 'Cupón no encontrado' else 404)
+        return JsonResponse({'mensaje': resultado['mensaje'], 'url_qr': resultado['url_qr']}, status=200)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
@@ -779,8 +740,6 @@ def cancelar_recojo(request):
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
-
-
 @csrf_exempt
 def obtener_recojosus(request, usuario_id):
     if request.method == 'GET':
@@ -788,7 +747,7 @@ def obtener_recojosus(request, usuario_id):
 
         try:
             # Filtrar por usuario específico y recojos activos
-            usuarios_data = list(UsuarioAdminService.obtener_usuarios_con_recojosus(user_id).values(
+            usuarios_data = list(UsuarioClienteService.obtener_usuarios_con_recojosus(user_id).values(
                 'id', 'nombre', 'apellido', 'direccion', 'numero_contacto', 'DNI',
                 'gestorplan__plan__nombre',
                 'gestorplan__recojo__id',
