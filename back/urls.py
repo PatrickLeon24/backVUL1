@@ -27,4 +27,5 @@ urlpatterns = [
     path('historial_cupones/<int:usuario_id>/', views.obtener_historial_cupones),
     path('obtener_recojosus/<int:usuario_id>/', views.obtener_recojosus),
     path('retroceder_estado', views.consultar_recojoR),
+    path('verificar_recojo_activo/<int:usuario_id>/', views.verificar_recojo_activo),
     ]

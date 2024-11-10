@@ -786,3 +786,17 @@ def obtener_historial_cupones(request, usuario_id):
     except Exception as e:
         # Manejo de errores en caso de que ocurra un problema
         return JsonResponse({'error': str(e)}, status=500)
+    
+@csrf_exempt
+def verificar_recojo_activo(request, usuario_id):
+    if request.method == 'POST':
+        try:
+            # Buscar un recojo activo para el usuario
+            recojo_activo = Recojo.objects.filter(gestor_plan__usuario__id=usuario_id, activo=True).exists()
+            return JsonResponse({'recojo_activo': recojo_activo})
+        except Recojo.DoesNotExist:
+            return JsonResponse({'recojo_activo': False})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'Método no permitido.'}, status=405)
