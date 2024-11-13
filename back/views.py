@@ -12,6 +12,11 @@ from django.utils import timezone
 from django.core.mail import send_mail
 import random
 import string
+from django.core.mail import EmailMessage
+from reportlab.lib.pagesizes import letter, A5
+from reportlab.pdfgen import canvas
+from io import BytesIO
+from reportlab.lib import colors
 
 @csrf_exempt
 def inicio_sesion(request):
@@ -507,10 +512,28 @@ def consultar_recojo(request):
                 usuario.puntaje_acumulado += puntos_plan
                 usuario.save()
 
+                # Generar el PDF con los datos
+                pdf_buffer = generate_pdf(usuario, gestor_plan)
+
+                # Crear el correo
+                email = EmailMessage(
+                    'Tu Boleta de Recojo',
+                    'Adjunto la boleta PDF con el detalle de tu recojo inactivo.',
+                    'verdeulima@gmail.com',
+                    [usuario.email], 
+                )
+
+                # Adjuntar el archivo PDF generado
+                email.attach('boleta_recojo_inactivo.pdf', pdf_buffer.read(), 'application/pdf')
+
+                # Enviar el correo
+                email.send()
+
+                # Notificación al usuario
                 Notificacion.objects.create(
                     usuario=usuario,
                     administrador=administrador,
-                    mensaje="Su pedido ha sido completado y se le han asignado puntos."
+                    mensaje="Su pedido ha sido completado, y se le han asignado puntos. Adjuntamos la boleta PDF."
                 )
 
             return JsonResponse({'status': 'success', 'recojo': "recojo_data"}, status=200)
@@ -850,3 +873,28 @@ def verificar_recojo_activo(request, usuario_id):
             return JsonResponse({'error': str(e)}, status=500)
     else:
         return JsonResponse({'error': 'Método no permitido.'}, status=405)
+    
+def generate_pdf(usuario, gestor_plan):
+    buffer = BytesIO()
+    
+    p = canvas.Canvas(buffer, pagesize=A5)  # Formato A5
+
+    # Titulo
+    p.setFont("Helvetica-Bold", 16)  # Tamaño de fuente
+    p.setFillColor(colors.darkblue)
+    p.drawString(70, 400, "Boleta PDF de Recojo Inactivo")
+
+    # Información del usuario y plan
+    p.setFont("Helvetica", 10)
+    p.setFillColor(colors.black)
+    p.drawString(70, 380, f"Nombre: {usuario.nombre} {usuario.apellido}")
+    p.drawString(70, 360, f"Plan: {gestor_plan.plan.nombre}")
+    p.drawString(70, 340, f"Fecha de inactivación: {timezone.now().strftime('%d/%m/%Y')}")
+    p.drawString(70, 320, f"Puntos asignados: {gestor_plan.plan.puntos_plan}")
+
+    # Finalizar el PDF
+    p.showPage()
+    p.save()
+
+    buffer.seek(0)
+    return buffer
