@@ -161,14 +161,16 @@ def crear_pago(request):
         estado = data.get('estado')
         metodo_pago = data.get('metodo_pago')
         fecha_pago = data.get('fecha_pago')
+        monto_pago = data.get('monto_pago')
 
+        print(estado, metodo_pago, fecha_pago, monto_pago)
         # Validar que los campos no estén vacíos
-        if not estado or not metodo_pago or not fecha_pago:
+        if not estado or not metodo_pago or not fecha_pago or not monto_pago:
             return JsonResponse({'error': 'Faltan campos obligatorios'}, status=400)
 
         # Crear el pago utilizando el servicio
         try:
-            nuevo_pago = PagoService.crear_pago(estado, metodo_pago, fecha_pago)
+            nuevo_pago = PagoService.crear_pago(estado, metodo_pago, fecha_pago, monto_pago)
             return JsonResponse({
                 'mensaje': 'Pago creado exitosamente',
                 'pago_id': nuevo_pago.id
@@ -289,6 +291,11 @@ def iniciar_recojo(request):
                 trayectoria=nueva_trayectoria
             )
 
+            Notificacion.objects.create(
+                usuario = usuario,
+                administrador = None,
+                mensaje="Su solicitud ha sido recibida"
+            )
             return JsonResponse({
                 'mensaje': 'Recojo iniciado exitosamente',
                 'recojo_id': nuevo_recojo.id,
@@ -447,29 +454,45 @@ def consultar_recojo(request):
 
             trayecto = r_t.trayectoria
 
+            # Cambiar el estado y enviar notificación según el estado actual
             if int(trayecto.estado) == 1:
                 trayectoria_obj = Trayectoria.objects.get(id=2)
-                R_tN = Recojo_trayectoria.objects.create(
+                Recojo_trayectoria.objects.create(
                     estado_ingreso=timezone.localtime(),
                     recojo=recojo,
                     trayectoria=trayectoria_obj,
                     administrador=administrador
+                )
+                Notificacion.objects.create(
+                    usuario=usuario,
+                    administrador=administrador,
+                    mensaje="El estado de su pedido ha cambiado a 'En Prepracion'."
                 )
             elif int(trayecto.estado) == 2:
                 trayectoria_obj = Trayectoria.objects.get(id=3)
-                R_tN = Recojo_trayectoria.objects.create(
+                Recojo_trayectoria.objects.create(
                     estado_ingreso=timezone.localtime(),
                     recojo=recojo,
                     trayectoria=trayectoria_obj,
                     administrador=administrador
                 )
+                Notificacion.objects.create(
+                    usuario=usuario,
+                    administrador=administrador,
+                    mensaje="El estado de su pedido ha cambiado a 'En camino'."
+                )
             elif int(trayecto.estado) == 3:
                 trayectoria_obj = Trayectoria.objects.get(id=4)
-                R_tN = Recojo_trayectoria.objects.create(
+                Recojo_trayectoria.objects.create(
                     estado_ingreso=timezone.localtime(),
                     recojo=recojo,
                     trayectoria=trayectoria_obj,
                     administrador=administrador
+                )
+                Notificacion.objects.create(
+                    usuario=usuario,
+                    administrador=administrador,
+                    mensaje="El estado de su pedido ha cambiado a 'Entregado'."
                 )
             elif int(trayecto.estado) == 4:
                 recojo.activo = False
@@ -480,12 +503,17 @@ def consultar_recojo(request):
                 usuario.puntaje_acumulado += puntos_plan
                 usuario.save()
 
+                Notificacion.objects.create(
+                    usuario=usuario,
+                    administrador=administrador,
+                    mensaje="Su pedido ha sido completado y se le han asignado puntos."
+                )
+
             return JsonResponse({'status': 'success', 'recojo': "recojo_data"}, status=200)
 
         except json.JSONDecodeError:
             return JsonResponse({'status': 'error', 'message': 'JSON inválido'}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
-
 #######sprint2
 
 @csrf_exempt
