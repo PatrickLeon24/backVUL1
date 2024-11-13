@@ -266,6 +266,10 @@ def iniciar_recojo(request):
             if not gestor_plan:
                 return JsonResponse({'error': 'No se encontró un plan asociado para el usuario'}, status=404)
             print(gestor_plan)
+
+            if not gestor_plan.validado:
+                return JsonResponse({'error': ' El plan aún no ha sido validado para iniciar un recojo'}, status=400)
+            
             # Verificar si se ha alcanzado la frecuencia máxima de recojos
             if gestor_plan.recojos_solicitados >= gestor_plan.plan.frecuencia_recojo:
                 return JsonResponse({'error': 'Se ha alcanzado el limite de recojos por su plan contratado'}, status=400)
