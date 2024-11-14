@@ -544,7 +544,6 @@ def consultar_recojo(request):
 #######sprint2
 
 @csrf_exempt
-
 def consultar_recojoR(request):
     if request.method == 'POST':
         try:
