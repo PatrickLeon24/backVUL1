@@ -17,31 +17,52 @@ from reportlab.lib.pagesizes import letter, A5
 from reportlab.pdfgen import canvas
 from io import BytesIO
 from reportlab.lib import colors
-
+from django.contrib.auth.models import User
+from django.http import JsonResponse
+from google.auth.transport import requests
+from google.oauth2 import id_token
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+import os
 @csrf_exempt
 def inicio_sesion(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         email = data.get('email')
         contrasena = data.get('contrasena')
+        google=data.get('google')
 
         user = Usuario.objects.filter(email=email).first()
-        
-        if not user:
-            return JsonResponse({'message': 'Usuario no encontrado'}, status=400)
 
-        tipo_usuario = user.tipousuario.tipo
+        # Verificar si se intenta iniciar sesión sin contraseña (Google)
+        if (not contrasena) and google==1:
+            if user:
+                tipo_usuario = user.tipousuario.tipo
+                usuario_service = UsuarioServiceFactory.get_usuario_service(tipo_usuario)
+                print("sigma:")
+                # Devolver los datos del usuario en caso de existir
+                return JsonResponse(usuario_service.obtener_datos_usuario(user))
+            else:
+                print("olaaaaa")
+                # Usuario no encontrado para el inicio de sesión de Google
+                return JsonResponse({'message': 'No hay cuenta asociada a este correo'}, status=400)
 
-        try:
-            usuario_service = UsuarioServiceFactory.get_usuario_service(tipo_usuario)
-        except ValueError as e:
-            return JsonResponse({'error': str(e)}, status=400)
-
-        user = usuario_service.verificar_credenciales(email, contrasena)
+        # Verificar inicio de sesión tradicional con contraseña
         if user:
-            return JsonResponse(usuario_service.obtener_datos_usuario(user))
+            tipo_usuario = user.tipousuario.tipo
+            try:
+                usuario_service = UsuarioServiceFactory.get_usuario_service(tipo_usuario)
+            except ValueError as e:
+                return JsonResponse({'error': str(e)}, status=400)
 
-        return JsonResponse({'message': 'Credenciales incorrectas'}, status=400)
+            user = usuario_service.verificar_credenciales(email, contrasena)
+            if user:
+                return JsonResponse(usuario_service.obtener_datos_usuario(user))
+
+            return JsonResponse({'message': 'Credenciales incorrectas'}, status=400)
+
+        return JsonResponse({'message': 'Usuario no encontrado'}, status=400)
 
     return JsonResponse({'message': 'Método no permitido'}, status=405)
     
@@ -897,3 +918,6 @@ def generate_pdf(usuario, gestor_plan):
 
     buffer.seek(0)
     return buffer
+
+
+
