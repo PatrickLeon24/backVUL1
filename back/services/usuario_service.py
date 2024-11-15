@@ -140,6 +140,18 @@ class UsuarioClienteService(UsuarioService):
         )
         return usuarios_con_recojos
     
+    
+    @staticmethod
+    def obtener_usuarios_valido(user_id):
+    # Obtiene todos los usuarios que tienen un recojo activo filtrando por user_id
+        usuarios_con_recojos = Usuario.objects.filter(
+            id=user_id,
+            
+            
+            
+        )
+        return usuarios_con_recojos
+    
 class UsuarioServiceFactory:
     @staticmethod
     def get_usuario_service(tipo_usuario):

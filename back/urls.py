@@ -30,5 +30,6 @@ urlpatterns = [
     path('verificar_recojo_activo/<int:usuario_id>/', views.verificar_recojo_activo),
     path('listar_pagos_no_validados/', views.listar_pagos_no_validados, name='listar_pagos_no_validados'),
     path('validar_pago/<int:pago_id>/', views.validar_pago, name='validar_pago'),
+    path('enviar_PDF', views.enviar_PDF),
     
     ]

@@ -9,7 +9,7 @@ from .services.gestor_cupon_service import GestorCuponService
 from .models import*
 import json
 from django.utils import timezone
-from django.core.mail import send_mail
+from django.core.mail import EmailMessage, send_mail
 import random
 import string
 from django.core.mail import EmailMessage
@@ -25,6 +25,10 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 import os
+from django.utils.html import strip_tags
+from xhtml2pdf import pisa
+from datetime import datetime
+
 @csrf_exempt
 def inicio_sesion(request):
     if request.method == 'POST':
@@ -927,10 +931,11 @@ def listar_pagos_no_validados(request):
     data = [
         {
             'id': pago.id,
+            'usuarioid':pago.usuario.id,
             'usuario': str(pago.usuario),  # Usa el método __str__ de Usuario
             'plan': str(pago.plan),        # Usa el método __str__ de Plan
             'metodo_pago': str(pago.pago), # Usa el método __str__ de Pago
-            'recojos_solicitados': pago.recojos_solicitados
+            'recojos_solicitados': pago.recojos_solicitados           
         }
         for pago in pagos_no_validados
     ]
@@ -947,5 +952,246 @@ def validar_pago(request, pago_id):
         except GestorPlan.DoesNotExist:
             return JsonResponse({'success': False, 'message': 'Pago no encontrado.'}, status=404)
     return JsonResponse({'success': False, 'message': 'Método no permitido.'}, status=405)
+
+# Función para generar un PDF con estilo de voucher
+def generar_pdf_voucher(usuario):
+    # Datos para el contexto
+    fecha_emision = datetime.now().strftime("%d/%m/%Y %H:%M")
+
+    # HTML directamente en la función
+    html_string = f"""
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Comprobante de Pago</title>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                color: #333;
+            }}
+            .header {{
+                background-color: #003366;
+                color: white;
+                text-align: center;
+                padding: 20px;
+            }}
+            .container {{
+                padding: 20px;
+            }}
+            .table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 20px;
+            }}
+            .table th, .table td {{
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+            }}
+            .table th {{
+                background-color: #E8E8E8;
+                color: #003366;
+            }}
+            .footer {{
+                margin-top: 20px;
+                font-size: 12px;
+                text-align: center;
+            }}
+            .foot{{
+                text-align: center;
+            }}
+        </style>
+    </head>
+    <body>
+
+    <div class="header">
+        <h1>COMPROBANTE DE PAGO</h1>
+    </div>
+
+    <div class="container">
+        <h2 class ="foot">Detalles del Pago</h2>
+        <table class="table">
+            <tr>
+                <th>Nombre:</th>
+                <td>{usuario['nombre']} {usuario['apellido']}</td>
+            </tr>
+            <tr>
+                <th>DNI:</th>
+                <td>{usuario['DNI']}</td>
+            </tr>
+            <tr>
+                <th>Número de contacto:</th>
+                <td>{usuario['numero_contacto']}</td>
+            </tr>
+            <tr>
+                <th>Email:</th>
+                <td>{usuario['email']}</td>
+            </tr>
+            <tr>
+                <th>Dirección:</th>
+                <td>{usuario['direccion']}</td>
+            </tr>
+            <tr>
+                <th>Plan contratado:</th>
+                <td>{usuario['gestorplan__plan__nombre']}</td>
+            </tr>
+            <tr>
+                <th>Precio del plan:</th>
+                <td>S/ {usuario['gestorplan__plan__precio']}</td>
+            </tr>
+            <tr>
+                <th>Fecha de emisión:</th>
+                <td>{fecha_emision}</td>
+            </tr>
+        </table>
+
+        <p class ="foot">¡Gracias por su preferencia! Si tiene alguna duda sobre su pago, no dude en contactarnos.</p>
+    </div>
+
+    </body>
+    </html>
+    """
+
+    # Crear un buffer para almacenar el PDF
+    buffer = BytesIO()
+
+    # Convertir el HTML a PDF usando xhtml2pdf
+    pisa_status = pisa.CreatePDF(html_string, dest=buffer)
+
+    # Asegúrate de que la conversión fue exitosa
+    if pisa_status.err:
+        return None
+
+    buffer.seek(0)
+    return buffer
+
+@csrf_exempt
+def enviar_PDF(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        usuario_id = data.get('usuario_id')
+
+        # Obtener los datos de usuario
+        usuarios_data = list(UsuarioClienteService.obtener_usuarios_valido(usuario_id).values(
+            'id', 'nombre', 'apellido', 'direccion', 'numero_contacto', 'DNI', 'email',
+            'gestorplan__plan__nombre',
+            'gestorplan__plan__precio'
+        ))
+
+        if not usuarios_data:
+            return JsonResponse({'message': 'No se encontraron usuarios para este ID.'}, status=404)
+
+        # Tomar el primer usuario (si hay más de un usuario, deberías decidir cuál escoger)
+        usuario = usuarios_data[0]
+
+        # Generar el PDF del voucher
+        pdf_buffer = generar_pdf_voucher(usuario)
+
+        # Crear el contenido HTML con estilo profesional
+        html_content = f"""
+        <html>
+        <head>
+            <style>
+                body {{
+                    font-family: 'Helvetica', Arial, sans-serif;
+                    background-color: #e0e0e0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 100vh;
+                    margin: 0;
+                    padding: 20px;
+                    color: #333;
+                }}
+                .container {{
+                    width: 100%;
+                    max-width: 600px;
+                    background-color: #ffffff;
+                    padding: 30px;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+                    text-align: left;
+                }}
+                h2 {{
+                    color: #003366;
+                    font-size: 24px;
+                    font-weight: 600;
+                    margin-bottom: 20px;
+                }}
+                p {{
+                    font-size: 14px;
+                    line-height: 1.6;
+                    margin-bottom: 10px;
+                }}
+                .highlight {{
+                    color: #003366;
+                    font-weight: bold;
+                }}
+                .footer {{
+                    font-size: 12px;
+                    color: #777;
+                    text-align: center;
+                    margin-top: 30px;
+                }}
+                .footer a {{
+                    color: #003366;
+                    text-decoration: none;
+                }}
+                .footer .company {{
+                    font-size: 14px;
+                    color: #333;
+                }}
+                .footer .company a {{
+                    font-weight: bold;
+                    color: #003366;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h2>Comprobante de Pago - {usuario["nombre"]} {usuario["apellido"]}</h2>
+                <p>Estimado(a) {usuario["nombre"]},</p>
+                <p>Le informamos que hemos recibido su pago por el plan <span class="highlight">{usuario['gestorplan__plan__nombre']}</span>.</p>
+                <p>Adjunto a este correo encontrará el <strong>Comprobante de Pago</strong> en formato PDF, correspondiente a su suscripción.</p>
+                <p><strong>Detalles del Pago:</strong></p>
+                <ul>
+                    <li><strong>Plan contratado:</strong> {usuario['gestorplan__plan__nombre']}</li>
+                    <li><strong>Precio:</strong> S/ {usuario['gestorplan__plan__precio']}</li>
+                    <li><strong>DNI:</strong> {usuario['DNI']}</li>
+                    <li><strong>Fecha de emisión:</strong> {timezone.now().strftime('%d/%m/%Y')}</li>
+                </ul>
+                <p>Para cualquier duda o consulta, no dude en ponerse en contacto con nosotros. Estamos a su disposición para ayudarle.</p>
+                <p>Gracias por confiar en nosotros.</p>
+                <div class="footer">
+                    <p class="company">Atentamente, <br> El equipo de <strong>VerdeUlima</strong></p>
+                    <p>Si tiene alguna pregunta, contáctenos en <a href="mailto:verdeulima@gmail.com">verdeulima@gmail.com</a></p>
+                    <p>&copy; {timezone.now().year} VerdeUlima. Todos los derechos reservados.</p>
+                    <p><a href="">Visite nuestro sitio web</a></p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        # Crear el correo con el contenido HTML
+        email = EmailMessage(
+            'Comprobante de Pago',
+            strip_tags(html_content),  # Versión de texto sin formato como respaldo
+            'verdeulima@gmail.com',  # Cambia esto por tu dirección de correo
+            [usuario['email']],
+        )
+        email.attach(f'voucher_{usuario["id"]}.pdf', pdf_buffer.read(), 'application/pdf')
+
+        # Establecer el contenido del correo como HTML
+        email.content_subtype = "html"
+        email.body = html_content
+
+        # Enviar el correo
+        email.send(fail_silently=False)
+
+        return JsonResponse({'message': 'Voucher enviado al correo del usuario.'}, status=200)
+    
 
 
