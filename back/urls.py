@@ -28,5 +28,7 @@ urlpatterns = [
     path('obtener_recojosus/<int:usuario_id>/', views.obtener_recojosus),
     path('retroceder_estado', views.consultar_recojoR),
     path('verificar_recojo_activo/<int:usuario_id>/', views.verificar_recojo_activo),
+    path('listar_pagos_no_validados/', views.listar_pagos_no_validados, name='listar_pagos_no_validados'),
+    path('validar_pago/<int:pago_id>/', views.validar_pago, name='validar_pago'),
     
     ]

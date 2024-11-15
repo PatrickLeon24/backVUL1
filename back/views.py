@@ -919,5 +919,33 @@ def generate_pdf(usuario, gestor_plan):
     buffer.seek(0)
     return buffer
 
+@csrf_exempt
+def listar_pagos_no_validados(request):
+    # Filtrar solo los pagos no validados
+    pagos_no_validados = GestorPlan.objects.filter(validado=False)
+    # Serializar los datos
+    data = [
+        {
+            'id': pago.id,
+            'usuario': str(pago.usuario),  # Usa el método __str__ de Usuario
+            'plan': str(pago.plan),        # Usa el método __str__ de Plan
+            'metodo_pago': str(pago.pago), # Usa el método __str__ de Pago
+            'recojos_solicitados': pago.recojos_solicitados
+        }
+        for pago in pagos_no_validados
+    ]
+    return JsonResponse(data, safe=False)
+
+@csrf_exempt
+def validar_pago(request, pago_id):
+    if request.method == 'POST':
+        try:
+            pago = GestorPlan.objects.get(id=pago_id)
+            pago.validado = True
+            pago.save()
+            return JsonResponse({'success': True, 'message': 'Pago validado correctamente.'})
+        except GestorPlan.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Pago no encontrado.'}, status=404)
+    return JsonResponse({'success': False, 'message': 'Método no permitido.'}, status=405)
 
 
