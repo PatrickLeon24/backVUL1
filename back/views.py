@@ -1223,7 +1223,6 @@ def ultimas_notificaciones(request):
                 })
 
             return JsonResponse({'status': 'success', 'notificaciones': notificaciones_data}, status=200)
-
         except json.JSONDecodeError:
             return JsonResponse({'error': 'JSON inválido'}, status=400)
 
