@@ -314,7 +314,7 @@ def iniciar_recojo(request):
             
             # Crear un nuevo recojo asociado al gestor de plan y la trayectoria inicial
             nuevo_recojo = Recojo.objects.create(
-                fecha_ingreso=timezone.now().date(),
+                fecha_ingreso=timezone.localtime().date(),
                 activo=True,
                 gestor_plan=gestor_plan,
             )
@@ -531,7 +531,7 @@ def consultar_recojo(request):
                 )
             elif int(trayecto.estado) == 4:
                 recojo.activo = False
-                recojo.fecha_salida = timezone.now()
+                recojo.fecha_salida = timezone.localtime()
                 recojo.save()
 
                 puntos_plan = gestor_plan.plan.puntos_plan
@@ -958,7 +958,7 @@ def validar_pago(request, pago_id):
 # Función para generar un PDF con estilo de voucher
 def generar_pdf_voucher(usuario):
     # Datos para el contexto
-    fecha_emision = datetime.now().strftime("%d/%m/%Y %H:%M")
+    fecha_emision = localtime(datetime.now().strftime("%d/%m/%Y %H:%M"))
 
     # HTML directamente en la función
     html_string = f"""
