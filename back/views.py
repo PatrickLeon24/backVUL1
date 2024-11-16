@@ -191,16 +191,19 @@ def crear_pago(request):
         data = json.loads(request.body)
         estado = data.get('estado')
         metodo_pago = data.get('metodo_pago')
-        fecha_pago = data.get('fecha_pago')
         monto_pago = data.get('monto_pago')
 
-        print(estado, metodo_pago, fecha_pago, monto_pago)
+        print(estado, metodo_pago, monto_pago)
+
         # Validar que los campos no estén vacíos
-        if not estado or not metodo_pago or not fecha_pago or not monto_pago:
+        if not estado or not metodo_pago or not monto_pago:
             return JsonResponse({'error': 'Faltan campos obligatorios'}, status=400)
 
-        # Crear el pago utilizando el servicio
         try:
+            # Obtener la fecha y hora actual en la zona horaria local
+            fecha_pago = timezone.localtime(timezone.now())  # Esto te dará la hora local del servidor
+            
+            # Crear el pago utilizando el servicio
             nuevo_pago = PagoService.crear_pago(estado, metodo_pago, fecha_pago, monto_pago)
             return JsonResponse({
                 'mensaje': 'Pago creado exitosamente',
