@@ -1162,7 +1162,7 @@ def enviar_PDF(request):
                     <li><strong>Plan contratado:</strong> {usuario['gestorplan__plan__nombre']}</li>
                     <li><strong>Precio:</strong> S/ {usuario['gestorplan__plan__precio']}</li>
                     <li><strong>DNI:</strong> {usuario['DNI']}</li>
-                    <li><strong>Fecha de emisión:</strong> {timezone.now().strftime('%d/%m/%Y')}</li>
+                    <li><strong>Fecha de emisión:</strong> {localtime(timezone.now()).strftime('%d/%m/%Y')}</li>
                 </ul>
                 <p>Para cualquier duda o consulta, no dude en ponerse en contacto con nosotros. Estamos a su disposición para ayudarle.</p>
                 <p>Gracias por confiar en nosotros.</p>
