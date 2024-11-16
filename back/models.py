@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.utils.timezone import localtime
 # Create your models here.
 
 # Tipo de Usuario
@@ -135,11 +136,19 @@ class Token(models.Model):
         return f'Token de {self.usuario} - {self.token}'
     
 class Notificacion(models.Model):
-    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name="notificaciones")
-    administrador = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, related_name="notificaciones_enviadas")
+    usuario = models.ForeignKey(
+        Usuario, on_delete=models.CASCADE, related_name="notificaciones"
+    )
+    administrador = models.ForeignKey(
+        Usuario, on_delete=models.SET_NULL, null=True, related_name="notificaciones_enviadas"
+    )
     mensaje = models.TextField()
     fecha_creacion = models.DateTimeField(default=timezone.now)
     leido = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Notificación para {self.usuario.email} - Leído: {self.leido}"
+
+    def fecha_creacion_local(self):
+        # Retorna la fecha en la zona horaria local
+        return localtime(self.fecha_creacion)

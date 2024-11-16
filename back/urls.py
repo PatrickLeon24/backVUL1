@@ -31,5 +31,6 @@ urlpatterns = [
     path('listar_pagos_no_validados/', views.listar_pagos_no_validados, name='listar_pagos_no_validados'),
     path('validar_pago/<int:pago_id>/', views.validar_pago, name='validar_pago'),
     path('enviar_PDF', views.enviar_PDF),
+    path('notificaciones', views.ultimas_notificaciones)
     
     ]

@@ -1,3 +1,4 @@
+from time import localtime
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .services.usuario_service import UsuarioService, UsuarioAdminService, UsuarioServiceFactory, UsuarioClienteService
@@ -500,7 +501,7 @@ def consultar_recojo(request):
                 Notificacion.objects.create(
                     usuario=usuario,
                     administrador=administrador,
-                    mensaje="El estado de su pedido ha cambiado a 'En Prepracion'."
+                    mensaje="El estado de su pedido ha cambiado a 'En Preparacion'."
                 )
             elif int(trayecto.estado) == 2:
                 trayectoria_obj = Trayectoria.objects.get(id=3)
@@ -897,7 +898,8 @@ def verificar_recojo_activo(request, usuario_id):
             return JsonResponse({'error': str(e)}, status=500)
     else:
         return JsonResponse({'error': 'Método no permitido.'}, status=405)
-    
+
+#### Sprint 3    
 def generate_pdf(usuario, gestor_plan):
     buffer = BytesIO()
     
@@ -1193,5 +1195,36 @@ def enviar_PDF(request):
 
         return JsonResponse({'message': 'Voucher enviado al correo del usuario.'}, status=200)
     
+@csrf_exempt
+def ultimas_notificaciones(request):
+    if request.method == 'POST':
+        try:
+            body = json.loads(request.body)
+            usuario_id = body.get('usuario_id')
 
+            # Verificar si el usuario existe
+            usuario = Usuario.objects.filter(id=usuario_id).first()
+            if not usuario:
+                return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
 
+            # Obtener las últimas 4 notificaciones
+            notificaciones = Notificacion.objects.filter(usuario=usuario).order_by('-fecha_creacion')[:4]
+            if not notificaciones.exists():
+                return JsonResponse({'error': 'No se encontraron notificaciones para este usuario'}, status=404)
+
+            # Construir la respuesta con las notificaciones
+            notificaciones_data = []
+            for notificacion in notificaciones:
+                notificaciones_data.append({
+                    'id': notificacion.id,
+                    'mensaje': notificacion.mensaje,
+                    'fecha_creacion': localtime(notificacion.fecha_creacion).strftime('%Y-%m-%d %H:%M:%S'),
+                    'leido': notificacion.leido
+                })
+
+            return JsonResponse({'status': 'success', 'notificaciones': notificaciones_data}, status=200)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'JSON inválido'}, status=400)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
