@@ -200,8 +200,7 @@ def crear_pago(request):
             return JsonResponse({'error': 'Faltan campos obligatorios'}, status=400)
 
         try:
-            # Obtener la fecha y hora actual en la zona horaria local
-            fecha_pago = timezone.localtime(timezone.now())  # Esto te dará la hora local del servidor
+            fecha_pago = timezone.localtime(timezone.now())
             
             # Crear el pago utilizando el servicio
             nuevo_pago = PagoService.crear_pago(estado, metodo_pago, fecha_pago, monto_pago)
@@ -358,15 +357,12 @@ def verificar_trayectoria_recojo(request):
 
             # Verificar que el usuario exista
             usuario = Usuario.objects.filter(id=usuario_id).first()
-            print("ola1")
             if not usuario:
                 return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
 
             # Obtener el gestor de plan del usuario
             gestor_plan = GestorPlan.objects.filter(usuario=usuario).last()
-            print("ola2")
             if not gestor_plan:
-                print("ola")
                 return JsonResponse({'error': 'No se encontró un plan asociado para el usuario'}, status=404)
 
             recojo = Recojo.objects.filter(gestor_plan=gestor_plan, activo=True).last()
@@ -378,29 +374,41 @@ def verificar_trayectoria_recojo(request):
             if not trayectorias:
                 return JsonResponse({'error': 'No se encontraron trayectorias asociadas al recojo'}, status=404)
 
-            # Obtener estado, fecha y administrador para cada trayectoria
+            # Usar un diccionario para almacenar solo el último estado por número de estado
             estado_trayectoria = []
             fechas_hora = []
             administradores = []
+            estados_vistos = set()  # Conjunto para asegurar que no repetimos estados
+
             for r_t in trayectorias:
-                estado_trayectoria.append(r_t.trayectoria.estado)
+                estado = r_t.trayectoria.estado
+                
+                # Si el estado ya fue registrado, lo saltamos
+                if estado in estados_vistos:
+                    continue
+
+                # Agregar estado a la lista y marcarlo como visto
+                estado_trayectoria.append(estado)
+                estados_vistos.add(estado)
+
+                # Obtener fecha y hora del estado
                 estado_ingreso_local = timezone.localtime(r_t.estado_ingreso)
                 fechas_hora.append(estado_ingreso_local.strftime('%Y-%m-%d %H:%M'))
-                
+
                 # Solo agregar el administrador si existe
-                if r_t.administrador:  # Verifica si existe administrador
+                if r_t.administrador:
                     administradores.append(f"{r_t.administrador.nombre} {r_t.administrador.apellido}")
                 else:
-                    administradores.append("Administrador no asignado")  # Si no hay administrador
+                    administradores.append("Administrador no asignado")
 
             return JsonResponse({
-                'estado_trayectoria': estado_trayectoria[-1],  # último estado
+                'estado_trayectoria': estado_trayectoria,  # Todos los estados únicos
                 'fechas_hora': fechas_hora,  # Lista de fechas completas
                 'administradores': administradores  # Lista de administradores por estado
             }, status=200)
 
         except Exception as e:
-            return JsonResponse({'estado_trayectoria': 0, 'mensaje': f'Error al verificar la trayectoria: {str(e)}'}, status=500)
+            return JsonResponse({'estado_trayectoria': [], 'mensaje': f'Error al verificar la trayectoria: {str(e)}'}, status=500)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
@@ -412,10 +420,10 @@ def obtener_recojos(request):
             usuarios_data = list(UsuarioAdminService.obtener_usuarios_con_recojos().values(
                 'id', 'nombre', 'apellido', 'direccion', 'numero_contacto', 'DNI',
                 'gestorplan__plan__nombre',
-                'gestorplan__recojo__id',  # ID del recojo para identificar el último
+                'gestorplan__recojo__id',
                 'gestorplan__recojo__fecha_ingreso',
                 'gestorplan__recojo__recojo_trayectoria__trayectoria__estado',
-                'gestorplan__recojo__recojo_trayectoria__id'  # ID de recojo_trayectoria
+                'gestorplan__recojo__recojo_trayectoria__id' 
             ))
 
             # Diccionario para almacenar el último recojo por usuario
@@ -604,14 +612,28 @@ def consultar_recojoR(request):
 
             # Retroceder el estado si es mayor que 1
             if int(trayecto.estado) > 1:
-                estado=int(trayecto.estado)-1
+                # Elimina la trayectoria actual
+                r_t.delete()
+
+                # Retroceder el estado
+                estado = int(trayecto.estado) - 1
                 trayectoria_obj = Trayectoria.objects.get(id=estado)
-                R_tN = Recojo_trayectoria.objects.create(
+
+                # Crear una nueva entrada con el estado retrocedido
+                Recojo_trayectoria.objects.create(
                     estado_ingreso=timezone.localtime(),
                     recojo=recojo,
                     trayectoria=trayectoria_obj,
-                    administrador=administrador
+                    administrador=administrador if estado > 1 else None
                 )
+
+                # Crear notificación
+                Notificacion.objects.create(
+                    usuario=usuario,
+                    administrador=administrador,
+                    mensaje="El estado de su pedido ha sufrido cambios."
+                )
+
                 return JsonResponse({'status': 'success', 'message': 'Estado retrocedido correctamente.'}, status=200)
             else:
                 return JsonResponse({'error': 'El estado no puede retroceder más.'}, status=400)
@@ -626,14 +648,14 @@ def send_email(request):
         # Datos estáticos
         subject = 'Prueba de lelele'
         message = 'Este es un mensaje de prueba.'
-        recipient = '20214404@aloe.ulima.edu.pe'  # Reemplaza con el email fijo que deseas usar
+        recipient = '20214404@aloe.ulima.edu.pe'
 
         try:
             send_mail(
                 subject,
                 message,
-                'verdeulima@gmail.com',     # Remitente (debe coincidir con EMAIL_HOST_USER)
-                [recipient],              # Lista de destinatarios
+                'verdeulima@gmail.com',  
+                [recipient],         
                 fail_silently=False,
             )
             return JsonResponse({'message': 'Correo enviado exitosamente.'})
@@ -664,7 +686,7 @@ def enviar_token(request):
         send_mail(
             'Solicitud de recuperación de contraseña',
             f'Su token de recuperación es: {token}',
-            'verdeulima@gmail.com',  # Cambia esto por tu dirección de correo
+            'verdeulima@gmail.com',
             [usuario.email],
             fail_silently=False,
         )
@@ -679,10 +701,8 @@ def cambiar_contrasena(request):
         token_recibido = data.get('token')
         nueva_contrasena = data.get('nueva_contrasena')
 
-        # Utilizar el método en UsuarioService para cambiar la contraseña
         resultado = UsuarioService.cambiar_contrasena_con_token(email, token_recibido, nueva_contrasena)
 
-        # Verificar el resultado y devolver la respuesta adecuada
         if 'error' in resultado:
             return JsonResponse({'error': resultado['error']}, status=400)
         
@@ -695,10 +715,8 @@ def canjear_cupon(request):
         usuario_id = data.get('usuario_id')
         cupon_id = data.get('cupon_id')
         
-        # Llamar al método de servicio para canjear el cupón
         resultado = GestorCuponService.canjear_cupon(usuario_id, cupon_id)
 
-        # Responder según el resultado
         if 'error' in resultado:
             return JsonResponse({'error': resultado['error']}, status=400 if resultado['error'] != 'Cupón no encontrado' else 404)
         return JsonResponse({'mensaje': resultado['mensaje'], 'url_qr': resultado['url_qr']}, status=200)
@@ -753,13 +771,10 @@ def generar_codigo_invitacion(request):
 def obtener_codigos_invitacion(request, usuario_id):
     if request.method == 'GET':
         try:
-            # Verificar si el administrador existe
             usuario_admin = Usuario.objects.get(id=usuario_id)
 
-            # Filtrar los códigos de invitación generados por este administrador
             codigos_invitacion = CodigoInvitacion.objects.filter(creado_por=usuario_admin)
 
-            # Crear la respuesta JSON manualmente
             codigos_data = [
                 {
                     'codigo': codigo.codigo,
@@ -906,10 +921,10 @@ def verificar_recojo_activo(request, usuario_id):
 def generate_pdf(usuario, gestor_plan):
     buffer = BytesIO()
     
-    p = canvas.Canvas(buffer, pagesize=A5)  # Formato A5
+    p = canvas.Canvas(buffer, pagesize=A5) 
 
     # Titulo
-    p.setFont("Helvetica-Bold", 16)  # Tamaño de fuente
+    p.setFont("Helvetica-Bold", 16) 
     p.setFillColor(colors.darkblue)
     p.drawString(70, 400, "Boleta PDF de Recojo Inactivo")
 
@@ -1205,13 +1220,14 @@ def ultimas_notificaciones(request):
             body = json.loads(request.body)
             usuario_id = body.get('usuario_id')
 
-            # Verificar si el usuario existe
             usuario = Usuario.objects.filter(id=usuario_id).first()
             if not usuario:
                 return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
 
             # Obtener las últimas 4 notificaciones
-            notificaciones = Notificacion.objects.filter(usuario=usuario).order_by('-fecha_creacion')[:4]
+            todas_notificaciones = Notificacion.objects.filter(usuario=usuario).order_by('-fecha_creacion')
+            notificaciones = todas_notificaciones[:4]
+
             if not notificaciones.exists():
                 return JsonResponse({'error': 'No se encontraron notificaciones para este usuario'}, status=404)
 
@@ -1221,12 +1237,17 @@ def ultimas_notificaciones(request):
                 notificaciones_data.append({
                     'id': notificacion.id,
                     'mensaje': notificacion.mensaje,
-                    'fecha_creacion': localtime(notificacion.fecha_creacion).strftime('%Y-%m-%d %H:%M:%S'),
+                    'fecha_creacion': localtime(notificacion.fecha_creacion).strftime('%Y-%m-%d %H:%M'),
                     'leido': notificacion.leido
                 })
+
+            # Marcar las notificaciones como leídas usando ids
+            notificacion_ids = [notificacion.id for notificacion in notificaciones]
+            todas_notificaciones.filter(id__in=notificacion_ids).update(leido=True)
 
             return JsonResponse({'status': 'success', 'notificaciones': notificaciones_data}, status=200)
         except json.JSONDecodeError:
             return JsonResponse({'error': 'JSON inválido'}, status=400)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
+
