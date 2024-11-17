@@ -477,14 +477,17 @@ def consultar_recojoR(request):
             recojo_id = body.get('recojo_id')
             admin_id = body.get('admin_id')
 
+            # Validar administrador
             administrador = Usuario.objects.filter(id=admin_id).first()
             if not administrador:
                 return JsonResponse({'error': 'Administrador no encontrado'}, status=404)
 
+            # Validar usuario
             usuario = Usuario.objects.filter(id=recojo_id).first()
             if not usuario:
                 return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
 
+            # Obtener el plan y recojo asociados
             gestor_plan = GestorPlan.objects.filter(usuario=usuario).last()
             if not gestor_plan:
                 return JsonResponse({'error': 'No se encontró un plan asociado para el usuario'}, status=404)
@@ -493,43 +496,60 @@ def consultar_recojoR(request):
             if not recojo:
                 return JsonResponse({'error': 'No se encontró un recojo activo para el usuario'}, status=404)
 
-            r_t = Recojo_trayectoria.objects.filter(recojo=recojo).last()
-            if not r_t:
-                return JsonResponse({'error': 'No se encontró una trayectoria asociada al recojo'}, status=404)
-
-            trayecto = r_t.trayectoria
-
-            # Retroceder el estado si es mayor que 1
-            if int(trayecto.estado) > 1:
-                # Elimina la trayectoria actual
-                r_t.delete()
-
-                # Retroceder el estado
-                estado = int(trayecto.estado) - 1
-                trayectoria_obj = Trayectoria.objects.get(id=estado)
-
-                # Crear una nueva entrada con el estado retrocedido
-                Recojo_trayectoria.objects.create(
-                    estado_ingreso=timezone.localtime(),
-                    recojo=recojo,
-                    trayectoria=trayectoria_obj,
-                    administrador=administrador if estado > 1 else None
-                )
-
-                # Crear notificación
-                Notificacion.objects.create(
-                    usuario=usuario,
-                    administrador=administrador,
-                    mensaje="El estado de su pedido ha sufrido cambios."
-                )
-
+            # Intentar retroceder trayectoria
+            try:
+                retroceder_trayectoria(recojo, administrador, usuario)
                 return JsonResponse({'status': 'success', 'message': 'Estado retrocedido correctamente.'}, status=200)
-            else:
-                return JsonResponse({'error': 'El estado no puede retroceder más.'}, status=400)
+            except ValueError as e:
+                return JsonResponse({'error': str(e)}, status=400)
 
         except json.JSONDecodeError:
-            return JsonResponse({'status': 'error', 'message': 'JSON inválido'}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
+            return JsonResponse({'error': 'JSON inválido'}, status=400)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+def retroceder_trayectoria(recojo, administrador, usuario):
+    # Obtener la trayectoria actual
+    trayectoria_actual = Recojo_trayectoria.objects.filter(recojo=recojo).last()
+    if not trayectoria_actual:
+        raise ValueError("No se encontró una trayectoria asociada al recojo.")
+
+    # Obtener el estado actual
+    estado_actual = int(trayectoria_actual.trayectoria.estado)
+
+    # Verificar si se puede retroceder
+    if estado_actual <= 1:
+        raise ValueError("El estado no puede retroceder más.")
+
+    # Retroceder el estado
+    nuevo_estado = estado_actual - 1
+    nueva_trayectoria = Trayectoria.objects.get(estado=nuevo_estado)
+
+    # Eliminar la trayectoria actual
+    trayectoria_actual.delete()
+
+    # Crear una nueva trayectoria con el estado retrocedido
+    Recojo_trayectoria.objects.create(
+        estado_ingreso=timezone.localtime(),
+        recojo=recojo,
+        trayectoria=nueva_trayectoria,
+        administrador=administrador if nuevo_estado > 1 else None
+    )
+
+    # Mensajes personalizados según el nuevo estado
+    mensajes_personalizados = {
+        '1': "Su pedido ha regresado al estado original.",
+        '2': "Su pedido ha regresado al estado 'En preparación'.",
+        '3': "Su pedido ha regresado al estado 'En camino'.",
+    }
+    mensaje = mensajes_personalizados.get(str(nuevo_estado), "El estado de su pedido ha cambiado.")
+
+    # Crear una notificación para el usuario
+    Notificacion.objects.create(
+        usuario=usuario,
+        administrador=administrador,
+        mensaje=mensaje
+    )
 
 @csrf_exempt
 def send_email(request):
@@ -1124,157 +1144,63 @@ def consultar_recojo(request):
             recojo_id = body.get('recojo_id')
             admin_id = body.get('admin_id')
 
-            # Obtener al administrador
+            # Validar administrador
             administrador = Usuario.objects.filter(id=admin_id).first()
             if not administrador:
                 return JsonResponse({'error': 'Administrador no encontrado'}, status=404)
 
-            # Obtener al usuario
+            # Validar usuario
             usuario = Usuario.objects.filter(id=recojo_id).first()
             if not usuario:
                 return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
 
-            # Verificar si el usuario tiene un plan de recojo activo
+            # Validar plan de recojo activo
             gestor_plan = GestorPlan.objects.filter(usuario=usuario, validado=True).last()
             if not gestor_plan:
                 return JsonResponse({'error': 'No se encontró un plan asociado para el usuario'}, status=404)
 
-            # Obtener el recojo activo
+            # Validar recojo activo
             recojo = Recojo.objects.filter(gestor_plan=gestor_plan, activo=True).last()
             if not recojo:
                 return JsonResponse({'error': 'No se encontró un recojo activo para el usuario'}, status=404)
 
-            # Obtener la trayectoria más reciente
+            # Actualizar trayectoria del recojo
             r_t = Recojo_trayectoria.objects.filter(recojo=recojo).last()
             if not r_t:
                 return JsonResponse({'error': 'No se encontró una trayectoria asociada al recojo'}, status=404)
 
             trayecto = r_t.trayectoria
-
-            # Lista de estados de la trayectoria
             estados_recojo = []
 
             if int(trayecto.estado) == 1:  # En Preparación
-                trayectoria_obj = Trayectoria.objects.get(id=2)
-                recojo_trayectoria = Recojo_trayectoria.objects.create(
-                    estado_ingreso=timezone.localtime(),
-                    recojo=recojo,
-                    trayectoria=trayectoria_obj,
-                    administrador=administrador
-                )
-                Notificacion.objects.create(
-                    usuario=usuario,
-                    administrador=administrador,
-                    mensaje="El estado de su pedido ha cambiado a 'En Preparación'."
-                )
+                actualizar_trayectoria(recojo, administrador, usuario, 2, "En Preparación")
 
             elif int(trayecto.estado) == 2:  # En Camino
-                trayectoria_obj = Trayectoria.objects.get(id=3)
-                recojo_trayectoria = Recojo_trayectoria.objects.create(
-                    estado_ingreso=timezone.localtime(),
-                    recojo=recojo,
-                    trayectoria=trayectoria_obj,
-                    administrador=administrador
-                )
-                Notificacion.objects.create(
-                    usuario=usuario,
-                    administrador=administrador,
-                    mensaje="El estado de su pedido ha cambiado a 'En Camino'."
-                )
+                actualizar_trayectoria(recojo, administrador, usuario, 3, "En Camino")
 
-            elif int(trayecto.estado) == 3:
-                trayectoria_obj = Trayectoria.objects.get(id=4)
-                recojo_trayectoria = Recojo_trayectoria.objects.create(
-                    estado_ingreso=timezone.localtime(),
-                    recojo=recojo,
-                    trayectoria=trayectoria_obj,
-                    administrador=administrador
-                )
-                Notificacion.objects.create(
-                    usuario=usuario,
-                    administrador=administrador,
-                    mensaje="El estado de su pedido ha cambiado a 'Entregado'."
-                )
+            elif int(trayecto.estado) == 3:  # Entregado
+                actualizar_trayectoria(recojo, administrador, usuario, 4, "Entregado")
 
-            elif int(trayecto.estado) == 4:
-                recojo.activo = False
-                recojo.fecha_salida = timezone.now()
-                recojo.save()
+            elif int(trayecto.estado) == 4:  # Finalizado
+                finalizar_recojo(recojo, administrador, usuario, gestor_plan)
 
-                puntos_plan = gestor_plan.plan.puntos_plan
-                usuario.puntaje_acumulado += puntos_plan
-                usuario.save()
-
-                # Obtener todos los estados previos en la trayectoria
+                # Obtener historial de estados del recojo
                 trayectorias_recojo = Recojo_trayectoria.objects.filter(recojo=recojo)
+                ESTADOS = {'1': 'Solicitud recibida', '2': 'En preparación', '3': 'En camino', '4': 'Terminado'}
 
-                ESTADOS = {
-                    '1': 'Solicitud recibida',
-                    '2': 'En preparacion',
-                    '3': 'En camino',
-                    '4': 'Terminado'
-                }
-
-                # Recorremos las trayectorias del recojo
                 for r_t in trayectorias_recojo:
-                    estado_descripcion = ESTADOS.get(r_t.trayectoria.estado, 'Estado Desconocido')  # Obtener la descripción del estado
-                    administrador_nombre = (
-                        f"{r_t.administrador.nombre} {r_t.administrador.apellido}" 
-                        if r_t.administrador else 'No asignado'  # Combinar nombre y apellido
-                    )
+                    estado_descripcion = ESTADOS.get(r_t.trayectoria.estado, 'Estado Desconocido')
+                    administrador_nombre = f"{r_t.administrador.nombre} {r_t.administrador.apellido}" if r_t.administrador else 'No asignado'
                     estado = {
-                        'estado': estado_descripcion, 
-                        'administrador': administrador_nombre,  # Nombre y apellido
+                        'estado': estado_descripcion,
+                        'administrador': administrador_nombre,
                         'fecha': timezone.localtime(r_t.estado_ingreso).strftime("%d/%m/%Y %H:%M")
                     }
                     estados_recojo.append(estado)
 
-                # Generar el PDF con los estados del recojo
-                pdf_buffer = generar_pdf_estados_recojo(usuario, estados_recojo)
-
-                if pdf_buffer:
-                    # Crear el correo electrónico
-                    cuerpo_mensaje = f"""
-                    Estimado/a {usuario.nombre} {usuario.apellido},
-
-                    Nos complace informarle que su solicitud de recojo ha sido completada y el estado de su recojo ha sido marcado como inactivo.
-
-                    A continuación, encontrará el detalle completo de su recojo en el archivo PDF adjunto. En él se incluyen los estados más relevantes de su servicio y la información asociada.
-
-                    Información del recojo:
-                    - DNI: {usuario.DNI}
-                    - Dirección: {usuario.direccion}
-                    - Número de contacto: {usuario.numero_contacto}
-
-                    Puede consultar más detalles en el archivo PDF adjunto. Si tiene alguna duda o necesita más información, no dude en contactarnos.
-
-                    Agradecemos su confianza en nuestro servicio y quedamos a su disposición para cualquier consulta.
-
-                    Atentamente,
-                    El equipo de Verde Ulima
-                    """
-
-                    email = EmailMessage(
-                        subject='Detalles de tu Recojo - Verde Ulima',
-                        body=cuerpo_mensaje,
-                        from_email='verdeulima@gmail.com',
-                        to=[usuario.email]
-                    )
-
-                    # Adjuntar el PDF generado
-                    email.attach('boleta_recojo_inactivo.pdf', pdf_buffer.read(), 'application/pdf')
-
-                    # Enviar el correo
-                    email.send()
-
-                    # Enviar notificación al usuario
-                    Notificacion.objects.create(
-                        usuario=usuario,
-                        administrador=administrador,
-                        mensaje="Su pedido ha sido completado, y se le han asignado puntos. Adjuntamos la boleta PDF."
-                    )
-                else:
-                    return JsonResponse({'error': 'No se pudo generar el PDF porque el buffer está vacío'}, status=400)
+                response = enviar_correo_recojo(usuario, estados_recojo)
+                if response.get('error'):
+                    return JsonResponse({'error': response['error']}, status=500)
 
             return JsonResponse({'status': 'success', 'recojo': estados_recojo}, status=200)
 
@@ -1283,9 +1209,83 @@ def consultar_recojo(request):
 
     return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
 
+@csrf_exempt
+def actualizar_trayectoria(recojo, administrador, usuario, nueva_trayectoria_id, estado_mensaje):
+    trayectoria_obj = Trayectoria.objects.get(id=nueva_trayectoria_id)
+    Recojo_trayectoria.objects.create(
+        estado_ingreso=timezone.localtime(),
+        recojo=recojo,
+        trayectoria=trayectoria_obj,
+        administrador=administrador
+    )
+    Notificacion.objects.create(
+        usuario=usuario,
+        administrador=administrador,
+        mensaje=f"El estado de su pedido ha cambiado a '{estado_mensaje}'."
+    )
+
+@csrf_exempt
+def finalizar_recojo(recojo, administrador, usuario, gestor_plan):
+    recojo.activo = False
+    recojo.fecha_salida = timezone.localtime()
+    recojo.save()
+    usuario.puntaje_acumulado += gestor_plan.plan.puntos_plan
+    usuario.save()
+
+    Notificacion.objects.create(
+        usuario=usuario,
+        administrador=administrador, 
+        mensaje=f"Su pedido ha sido finalizado correctamente y se han sumado {gestor_plan.plan.puntos_plan} puntos a su cuenta."
+    )
+
+@csrf_exempt
+def enviar_correo_recojo(usuario, estados_recojo):
+    try:
+        # Generar el PDF
+        pdf_buffer = generar_pdf_estados_recojo(usuario, estados_recojo)
+        if not pdf_buffer:
+            return {'error': 'No se pudo generar el PDF'}
+
+        # Cuerpo del mensaje
+        cuerpo_mensaje = f"""
+        Estimado/a {usuario.nombre} {usuario.apellido},
+
+        Nos complace informarle que su solicitud de recojo ha sido completada con éxito. Adjunto a este correo encontrará el detalle completo del proceso de recojo en formato PDF.
+
+        A continuación, le proporcionamos la información relacionada con su recojo:
+
+        - **DNI**: {usuario.DNI}
+        - **Dirección**: {usuario.direccion}
+        - **Número de contacto**: {usuario.numero_contacto}
+
+        Además, encontrará un resumen detallado de los estados por los que ha pasado su recojo, incluidos los administradores encargados y las fechas correspondientes.
+
+        Si tiene alguna consulta o requiere asistencia adicional, no dude en contactarnos. 
+
+        Agradecemos su confianza en nuestros servicios y esperamos seguir atendiéndole de la mejor manera.
+
+        Atentamente,
+        El equipo de Verde Ulima
+        """
+
+        # Enviar correo
+        email = EmailMessage(
+            subject='Detalles de tu Recojo - Verde Ulima',
+            body=cuerpo_mensaje,
+            from_email='verdeulima@gmail.com',
+            to=[usuario.email]
+        )
+        email.attach('boleta_recojo_inactivo.pdf', pdf_buffer.read(), 'application/pdf')
+        email.send()
+
+        return {'status': 'success'}
+
+    except Exception as e:
+        return {'error': str(e)}
+
 def generar_pdf_estados_recojo(usuario, estados_recojo):
     fecha_emision = timezone.localtime(timezone.now()).strftime("%d/%m/%Y %H:%M")
-    print("HOLA",estados_recojo)
+    print("Estados",estados_recojo)
     # Acceder a los atributos del objeto `usuario` directamente
     nombre_usuario = usuario.nombre
     apellido_usuario = usuario.apellido
@@ -1397,71 +1397,6 @@ def generar_pdf_estados_recojo(usuario, estados_recojo):
     pisa_status = pisa.CreatePDF(html_string, dest=pdf_file)
 
     if pisa_status.err:
-        return None  # Si ocurre un error al generar el PDF
-
+        return None  
     pdf_file.seek(0)
     return pdf_file
-
-@csrf_exempt
-def enviar_pdf_recojo_inactivo(request):
-    if request.method == 'POST':
-        try:
-            # Recibir los datos en formato JSON
-            data = json.loads(request.body)
-            usuario_id = data.get('usuario_id')
-
-            # Obtener los datos del usuario
-            usuario = Usuario.objects.filter(id=usuario_id).values(
-                'id', 'nombre', 'apellido', 'DNI', 'email', 'direccion', 'numero_contacto'
-            ).first()
-
-            if not usuario:
-                return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
-
-            # Generar el PDF con los detalles del recojo
-            pdf_buffer = generar_pdf_estados_recojo(usuario, [])
-            if pdf_buffer:
-                # Crear el cuerpo del mensaje de correo
-                cuerpo_mensaje = f"""
-                Estimado/a {usuario['nombre']} {usuario['apellido']},
-
-                Nos complace informarle que su solicitud de recojo ha sido completada y el estado de su recojo ha sido marcado como inactivo.
-
-                A continuación, encontrará el detalle completo de su recojo en el archivo PDF adjunto. En él se incluyen los estados más relevantes de su servicio y la información asociada.
-
-                Información del recojo:
-                - DNI: {usuario['DNI']}
-                - Dirección: {usuario['direccion']}
-                - Número de contacto: {usuario['numero_contacto']}
-
-                Puede consultar más detalles en el archivo PDF adjunto. Si tiene alguna duda o necesita más información, no dude en contactarnos.
-
-                Agradecemos su confianza en nuestro servicio y quedamos a su disposición para cualquier consulta.
-
-                Atentamente,
-                El equipo de Verde Ulima
-                """
-
-                # Crear el correo electrónico
-                email = EmailMessage(
-                    subject='Detalles de tu Recojo - Verde Ulima',
-                    body=cuerpo_mensaje,
-                    from_email='verdeulima@gmail.com',
-                    to=[usuario['email']]
-                )
-
-                # Adjuntar el PDF generado
-                email.attach('boleta_recojo.pdf', pdf_buffer.read(), 'application/pdf')
-
-                # Enviar el correo
-                email.send()
-
-                return JsonResponse({'message': 'PDF enviado con éxito'}, status=200)
-
-            else:
-                return JsonResponse({'error': 'Error al generar el PDF'}, status=500)
-
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'JSON inválido'}, status=400)
-
-    return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
