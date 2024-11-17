@@ -459,7 +459,7 @@ def obtener_puntaje_usuario(request, usuario_id):
             usuario = Usuario.objects.filter(id=usuario_id).first()
             if not usuario:
                 return JsonResponse({'error': 'Usuario no encontrado.'}, status=404)
-            # Suponiendo que los puntos del usuario están almacenados en el campo 'puntaje_acumulado'
+            # Los puntos del usuario están almacenados en el campo 'puntaje_acumulado'
             puntaje = usuario.puntaje_acumulado
             # Retornar el puntaje en formato JSON
             return JsonResponse({'puntos': puntaje}, status=200)
@@ -831,16 +831,17 @@ def verificar_recojo_activo(request, usuario_id):
 @csrf_exempt
 def listar_pagos_no_validados(request):
     # Filtrar solo los pagos no validados
-    pagos_no_validados = GestorPlan.objects.filter(validado=False)
+    pagos_no_validados = GestorPlan.objects.filter(validado=False).select_related('pago')  # Asegurarse de usar select_related para optimizar la consulta si 'pago' es una FK
+
     # Serializar los datos
     data = [
         {
             'id': pago.id,
-            'usuarioid':pago.usuario.id,
-            'usuario': str(pago.usuario),  # Usa el método __str__ de Usuario
-            'plan': str(pago.plan),        # Usa el método __str__ de Plan
-            'metodo_pago': str(pago.pago), # Usa el método __str__ de Pago
-            'recojos_solicitados': pago.recojos_solicitados           
+            'usuarioid': pago.usuario.id,
+            'usuario': str(pago.usuario),  # Usar el método __str__ de Usuario
+            'plan': str(pago.plan),        # Usar el método __str__ de Plan
+            'metodo_pago': str(pago.pago.metodo_pago),  # Asegúrate de acceder al campo correcto
+            'monto_pago': pago.pago.monto_pago  # Incluir el monto de pago desde la relación
         }
         for pago in pagos_no_validados
     ]
