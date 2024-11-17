@@ -104,6 +104,15 @@ class UsuarioAdminService(UsuarioService):
         nuevo_codigo.save()
         return nuevo_codigo.codigo
     
+    @staticmethod
+    def obtener_usuarios_valido(user_id):
+    # Obtiene todos los usuarios que tienen un recojo activo filtrando por user_id
+        usuarios_con_recojos = Usuario.objects.filter(
+            id=user_id,
+            
+        )
+        return usuarios_con_recojos
+
 class UsuarioClienteService(UsuarioService):
 
     @staticmethod
@@ -135,18 +144,6 @@ class UsuarioClienteService(UsuarioService):
             id=user_id,
             gestorplan__recojo__activo=False,
             gestorplan__recojo__recojo_trayectoria__trayectoria__estado =4
-            
-            
-        )
-        return usuarios_con_recojos
-    
-    
-    @staticmethod
-    def obtener_usuarios_valido(user_id):
-    # Obtiene todos los usuarios que tienen un recojo activo filtrando por user_id
-        usuarios_con_recojos = Usuario.objects.filter(
-            id=user_id,
-            
             
             
         )

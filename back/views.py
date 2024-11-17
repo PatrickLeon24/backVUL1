@@ -1,4 +1,4 @@
-from time import localtime
+from django.utils.timezone import localtime, now
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .services.usuario_service import UsuarioService, UsuarioAdminService, UsuarioServiceFactory, UsuarioClienteService
@@ -28,7 +28,6 @@ from rest_framework import status
 import os
 from django.utils.html import strip_tags
 from xhtml2pdf import pisa
-from datetime import datetime
 
 @csrf_exempt
 def inicio_sesion(request):
@@ -378,7 +377,7 @@ def verificar_trayectoria_recojo(request):
             estado_trayectoria = []
             fechas_hora = []
             administradores = []
-            estados_vistos = set()  # Conjunto para asegurar que no repetimos estados
+            estados_vistos = set()  # No repetir estados
 
             for r_t in trayectorias:
                 estado = r_t.trayectoria.estado
@@ -387,24 +386,22 @@ def verificar_trayectoria_recojo(request):
                 if estado in estados_vistos:
                     continue
 
-                # Agregar estado a la lista y marcarlo como visto
+               
                 estado_trayectoria.append(estado)
                 estados_vistos.add(estado)
 
-                # Obtener fecha y hora del estado
                 estado_ingreso_local = timezone.localtime(r_t.estado_ingreso)
                 fechas_hora.append(estado_ingreso_local.strftime('%Y-%m-%d %H:%M'))
 
-                # Solo agregar el administrador si existe
                 if r_t.administrador:
                     administradores.append(f"{r_t.administrador.nombre} {r_t.administrador.apellido}")
                 else:
                     administradores.append("Administrador no asignado")
 
             return JsonResponse({
-                'estado_trayectoria': estado_trayectoria,  # Todos los estados únicos
-                'fechas_hora': fechas_hora,  # Lista de fechas completas
-                'administradores': administradores  # Lista de administradores por estado
+                'estado_trayectoria': estado_trayectoria, 
+                'fechas_hora': fechas_hora, 
+                'administradores': administradores  
             }, status=200)
 
         except Exception as e:
@@ -470,114 +467,6 @@ def obtener_puntaje_usuario(request, usuario_id):
             return JsonResponse({'error': f'Error al obtener el puntaje del usuario: {str(e)}'}, status=500)
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
-@csrf_exempt
-def consultar_recojo(request):
-    if request.method == 'POST':
-        try:
-            body = json.loads(request.body)
-            recojo_id = body.get('recojo_id')
-            admin_id = body.get('admin_id')
-
-            administrador = Usuario.objects.filter(id=admin_id).first()
-            if not administrador:
-                return JsonResponse({'error': 'Administrador no encontrado'}, status=404)
-
-            usuario = Usuario.objects.filter(id=recojo_id).first()
-            if not usuario:
-                return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
-
-            gestor_plan = GestorPlan.objects.filter(usuario=usuario).last()
-            if not gestor_plan:
-                return JsonResponse({'error': 'No se encontró un plan asociado para el usuario'}, status=404)
-
-            recojo = Recojo.objects.filter(gestor_plan=gestor_plan, activo=True).last()
-            if not recojo:
-                return JsonResponse({'error': 'No se encontró un recojo activo para el usuario'}, status=404)
-
-            r_t = Recojo_trayectoria.objects.filter(recojo=recojo).last()
-            if not r_t:
-                return JsonResponse({'error': 'No se encontró una trayectoria asociada al recojo'}, status=404)
-
-            trayecto = r_t.trayectoria
-
-            # Cambiar el estado y enviar notificación según el estado actual
-            if int(trayecto.estado) == 1:
-                trayectoria_obj = Trayectoria.objects.get(id=2)
-                Recojo_trayectoria.objects.create(
-                    estado_ingreso=timezone.localtime(),
-                    recojo=recojo,
-                    trayectoria=trayectoria_obj,
-                    administrador=administrador
-                )
-                Notificacion.objects.create(
-                    usuario=usuario,
-                    administrador=administrador,
-                    mensaje="El estado de su pedido ha cambiado a 'En Preparacion'."
-                )
-            elif int(trayecto.estado) == 2:
-                trayectoria_obj = Trayectoria.objects.get(id=3)
-                Recojo_trayectoria.objects.create(
-                    estado_ingreso=timezone.localtime(),
-                    recojo=recojo,
-                    trayectoria=trayectoria_obj,
-                    administrador=administrador
-                )
-                Notificacion.objects.create(
-                    usuario=usuario,
-                    administrador=administrador,
-                    mensaje="El estado de su pedido ha cambiado a 'En camino'."
-                )
-            elif int(trayecto.estado) == 3:
-                trayectoria_obj = Trayectoria.objects.get(id=4)
-                Recojo_trayectoria.objects.create(
-                    estado_ingreso=timezone.localtime(),
-                    recojo=recojo,
-                    trayectoria=trayectoria_obj,
-                    administrador=administrador
-                )
-                Notificacion.objects.create(
-                    usuario=usuario,
-                    administrador=administrador,
-                    mensaje="El estado de su pedido ha cambiado a 'Entregado'."
-                )
-            elif int(trayecto.estado) == 4:
-                recojo.activo = False
-                recojo.fecha_salida = timezone.localtime()
-                recojo.save()
-
-                puntos_plan = gestor_plan.plan.puntos_plan
-                usuario.puntaje_acumulado += puntos_plan
-                usuario.save()
-
-                # Generar el PDF con los datos
-                pdf_buffer = generate_pdf(usuario, gestor_plan)
-
-                # Crear el correo
-                email = EmailMessage(
-                    'Tu Boleta de Recojo',
-                    'Adjunto la boleta PDF con el detalle de tu recojo inactivo.',
-                    'verdeulima@gmail.com',
-                    [usuario.email], 
-                )
-
-                # Adjuntar el archivo PDF generado
-                email.attach('boleta_recojo_inactivo.pdf', pdf_buffer.read(), 'application/pdf')
-
-                # Enviar el correo
-                email.send()
-
-                # Notificación al usuario
-                Notificacion.objects.create(
-                    usuario=usuario,
-                    administrador=administrador,
-                    mensaje="Su pedido ha sido completado, y se le han asignado puntos. Adjuntamos la boleta PDF."
-                )
-
-            return JsonResponse({'status': 'success', 'recojo': "recojo_data"}, status=200)
-
-        except json.JSONDecodeError:
-            return JsonResponse({'status': 'error', 'message': 'JSON inválido'}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
 #######sprint2
 
 @csrf_exempt
@@ -918,30 +807,6 @@ def verificar_recojo_activo(request, usuario_id):
         return JsonResponse({'error': 'Método no permitido.'}, status=405)
 
 #### Sprint 3    
-def generate_pdf(usuario, gestor_plan):
-    buffer = BytesIO()
-    
-    p = canvas.Canvas(buffer, pagesize=A5) 
-
-    # Titulo
-    p.setFont("Helvetica-Bold", 16) 
-    p.setFillColor(colors.darkblue)
-    p.drawString(70, 400, "Boleta PDF de Recojo Inactivo")
-
-    # Información del usuario y plan
-    p.setFont("Helvetica", 10)
-    p.setFillColor(colors.black)
-    p.drawString(70, 380, f"Nombre: {usuario.nombre} {usuario.apellido}")
-    p.drawString(70, 360, f"Plan: {gestor_plan.plan.nombre}")
-    p.drawString(70, 340, f"Fecha de inactivación: {timezone.now().strftime('%d/%m/%Y')}")
-    p.drawString(70, 320, f"Puntos asignados: {gestor_plan.plan.puntos_plan}")
-
-    # Finalizar el PDF
-    p.showPage()
-    p.save()
-
-    buffer.seek(0)
-    return buffer
 
 @csrf_exempt
 def listar_pagos_no_validados(request):
@@ -976,7 +841,7 @@ def validar_pago(request, pago_id):
 # Función para generar un PDF con estilo de voucher
 def generar_pdf_voucher(usuario):
     # Datos para el contexto
-    fecha_emision = localtime(datetime.now().strftime("%d/%m/%Y %H:%M"))
+    fecha_emision = localtime(now()).strftime("%d/%m/%Y %H:%M")
 
     # HTML directamente en la función
     html_string = f"""
@@ -1094,7 +959,7 @@ def enviar_PDF(request):
         usuario_id = data.get('usuario_id')
 
         # Obtener los datos de usuario
-        usuarios_data = list(UsuarioClienteService.obtener_usuarios_valido(usuario_id).values(
+        usuarios_data = list(UsuarioAdminService.obtener_usuarios_valido(usuario_id).values(
             'id', 'nombre', 'apellido', 'direccion', 'numero_contacto', 'DNI', 'email',
             'gestorplan__plan__nombre',
             'gestorplan__plan__precio'
@@ -1173,7 +1038,7 @@ def enviar_PDF(request):
             <div class="container">
                 <h2>Comprobante de Pago - {usuario["nombre"]} {usuario["apellido"]}</h2>
                 <p>Estimado(a) {usuario["nombre"]},</p>
-                <p>Le informamos que hemos recibido su pago por el plan <span class="highlight">{usuario['gestorplan__plan__nombre']}</span>.</p>
+                <p>Le informamos que hemos recibido su pago por el <span class="highlight">{usuario['gestorplan__plan__nombre']}</span>.</p>
                 <p>Adjunto a este correo encontrará el <strong>Comprobante de Pago</strong> en formato PDF, correspondiente a su suscripción.</p>
                 <p><strong>Detalles del Pago:</strong></p>
                 <ul>
@@ -1251,3 +1116,352 @@ def ultimas_notificaciones(request):
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
+@csrf_exempt
+def consultar_recojo(request):
+    if request.method == 'POST':
+        try:
+            body = json.loads(request.body)
+            recojo_id = body.get('recojo_id')
+            admin_id = body.get('admin_id')
+
+            # Obtener al administrador
+            administrador = Usuario.objects.filter(id=admin_id).first()
+            if not administrador:
+                return JsonResponse({'error': 'Administrador no encontrado'}, status=404)
+
+            # Obtener al usuario
+            usuario = Usuario.objects.filter(id=recojo_id).first()
+            if not usuario:
+                return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+            # Verificar si el usuario tiene un plan de recojo activo
+            gestor_plan = GestorPlan.objects.filter(usuario=usuario, validado=True).last()
+            if not gestor_plan:
+                return JsonResponse({'error': 'No se encontró un plan asociado para el usuario'}, status=404)
+
+            # Obtener el recojo activo
+            recojo = Recojo.objects.filter(gestor_plan=gestor_plan, activo=True).last()
+            if not recojo:
+                return JsonResponse({'error': 'No se encontró un recojo activo para el usuario'}, status=404)
+
+            # Obtener la trayectoria más reciente
+            r_t = Recojo_trayectoria.objects.filter(recojo=recojo).last()
+            if not r_t:
+                return JsonResponse({'error': 'No se encontró una trayectoria asociada al recojo'}, status=404)
+
+            trayecto = r_t.trayectoria
+
+            # Lista de estados de la trayectoria
+            estados_recojo = []
+
+            if int(trayecto.estado) == 1:  # En Preparación
+                trayectoria_obj = Trayectoria.objects.get(id=2)
+                recojo_trayectoria = Recojo_trayectoria.objects.create(
+                    estado_ingreso=timezone.localtime(),
+                    recojo=recojo,
+                    trayectoria=trayectoria_obj,
+                    administrador=administrador
+                )
+                Notificacion.objects.create(
+                    usuario=usuario,
+                    administrador=administrador,
+                    mensaje="El estado de su pedido ha cambiado a 'En Preparación'."
+                )
+
+            elif int(trayecto.estado) == 2:  # En Camino
+                trayectoria_obj = Trayectoria.objects.get(id=3)
+                recojo_trayectoria = Recojo_trayectoria.objects.create(
+                    estado_ingreso=timezone.localtime(),
+                    recojo=recojo,
+                    trayectoria=trayectoria_obj,
+                    administrador=administrador
+                )
+                Notificacion.objects.create(
+                    usuario=usuario,
+                    administrador=administrador,
+                    mensaje="El estado de su pedido ha cambiado a 'En Camino'."
+                )
+
+            elif int(trayecto.estado) == 3:
+                trayectoria_obj = Trayectoria.objects.get(id=4)
+                recojo_trayectoria = Recojo_trayectoria.objects.create(
+                    estado_ingreso=timezone.localtime(),
+                    recojo=recojo,
+                    trayectoria=trayectoria_obj,
+                    administrador=administrador
+                )
+                Notificacion.objects.create(
+                    usuario=usuario,
+                    administrador=administrador,
+                    mensaje="El estado de su pedido ha cambiado a 'Entregado'."
+                )
+
+            elif int(trayecto.estado) == 4:
+                recojo.activo = False
+                recojo.fecha_salida = timezone.now()
+                recojo.save()
+
+                puntos_plan = gestor_plan.plan.puntos_plan
+                usuario.puntaje_acumulado += puntos_plan
+                usuario.save()
+
+                # Obtener todos los estados previos en la trayectoria
+                trayectorias_recojo = Recojo_trayectoria.objects.filter(recojo=recojo)
+
+                ESTADOS = {
+                    '1': 'Solicitud recibida',
+                    '2': 'En preparacion',
+                    '3': 'En camino',
+                    '4': 'Terminado'
+                }
+
+                # Recorremos las trayectorias del recojo
+                for r_t in trayectorias_recojo:
+                    estado_descripcion = ESTADOS.get(r_t.trayectoria.estado, 'Estado Desconocido')  # Obtener la descripción del estado
+                    administrador_nombre = (
+                        f"{r_t.administrador.nombre} {r_t.administrador.apellido}" 
+                        if r_t.administrador else 'No asignado'  # Combinar nombre y apellido
+                    )
+                    estado = {
+                        'estado': estado_descripcion, 
+                        'administrador': administrador_nombre,  # Nombre y apellido
+                        'fecha': timezone.localtime(r_t.estado_ingreso).strftime("%d/%m/%Y %H:%M")
+                    }
+                    estados_recojo.append(estado)
+
+                # Generar el PDF con los estados del recojo
+                pdf_buffer = generar_pdf_estados_recojo(usuario, estados_recojo)
+
+                if pdf_buffer:
+                    # Crear el correo electrónico
+                    cuerpo_mensaje = f"""
+                    Estimado/a {usuario.nombre} {usuario.apellido},
+
+                    Nos complace informarle que su solicitud de recojo ha sido completada y el estado de su recojo ha sido marcado como inactivo.
+
+                    A continuación, encontrará el detalle completo de su recojo en el archivo PDF adjunto. En él se incluyen los estados más relevantes de su servicio y la información asociada.
+
+                    Información del recojo:
+                    - DNI: {usuario.DNI}
+                    - Dirección: {usuario.direccion}
+                    - Número de contacto: {usuario.numero_contacto}
+
+                    Puede consultar más detalles en el archivo PDF adjunto. Si tiene alguna duda o necesita más información, no dude en contactarnos.
+
+                    Agradecemos su confianza en nuestro servicio y quedamos a su disposición para cualquier consulta.
+
+                    Atentamente,
+                    El equipo de Verde Ulima
+                    """
+
+                    email = EmailMessage(
+                        subject='Detalles de tu Recojo - Verde Ulima',
+                        body=cuerpo_mensaje,
+                        from_email='verdeulima@gmail.com',
+                        to=[usuario.email]
+                    )
+
+                    # Adjuntar el PDF generado
+                    email.attach('boleta_recojo_inactivo.pdf', pdf_buffer.read(), 'application/pdf')
+
+                    # Enviar el correo
+                    email.send()
+
+                    # Enviar notificación al usuario
+                    Notificacion.objects.create(
+                        usuario=usuario,
+                        administrador=administrador,
+                        mensaje="Su pedido ha sido completado, y se le han asignado puntos. Adjuntamos la boleta PDF."
+                    )
+                else:
+                    return JsonResponse({'error': 'No se pudo generar el PDF porque el buffer está vacío'}, status=400)
+
+            return JsonResponse({'status': 'success', 'recojo': estados_recojo}, status=200)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'JSON inválido'}, status=400)
+
+    return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
+
+def generar_pdf_estados_recojo(usuario, estados_recojo):
+    fecha_emision = timezone.localtime(timezone.now()).strftime("%d/%m/%Y %H:%M")
+    print("HOLA",estados_recojo)
+    # Acceder a los atributos del objeto `usuario` directamente
+    nombre_usuario = usuario.nombre
+    apellido_usuario = usuario.apellido
+    dni_usuario = usuario.DNI
+    numero_contacto_usuario = usuario.numero_contacto
+    email_usuario = usuario.email
+    direccion_usuario = usuario.direccion
+
+    html_string = f"""
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Comprobante de Recojo</title>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                color: #333;
+            }}
+            .header {{
+                background-color: #003366;
+                color: white;
+                text-align: center;
+                padding: 20px;
+            }}
+            .container {{
+                padding: 20px;
+            }}
+            .table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 20px;
+            }}
+            .table th, .table td {{
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+            }}
+            .table th {{
+                background-color: #E8E8E8;
+                color: #003366;
+            }}
+            .footer {{
+                margin-top: 20px;
+                font-size: 12px;
+                text-align: center;
+            }}
+            .foot {{
+                text-align: center;
+            }}
+        </style>
+    </head>
+    <body>
+
+    <div class="header">
+        <h1>COMPROBANTE DE RECOJO</h1>
+    </div>
+
+    <div class="container">
+        <h2 class="foot">Detalles del Recojo</h2>
+        <table class="table">
+            <tr>
+                <th>Nombre:</th>
+                <td>{nombre_usuario} {apellido_usuario}</td>
+            </tr>
+            <tr>
+                <th>DNI:</th>
+                <td>{dni_usuario}</td>
+            </tr>
+            <tr>
+                <th>Número de contacto:</th>
+                <td>{numero_contacto_usuario}</td>
+            </tr>
+            <tr>
+                <th>Email:</th>
+                <td>{email_usuario}</td>
+            </tr>
+            <tr>
+                <th>Dirección:</th>
+                <td>{direccion_usuario}</td>
+            </tr>
+            <tr>
+                <th>Fecha de emisión:</th>
+                <td>{fecha_emision}</td>
+            </tr>
+        </table>
+
+        <h2>Estados del Recojo</h2>
+        <table class="table">
+            <tr>
+                <th>Estado</th>
+                <th>Administrador</th>
+                <th>Fecha</th>
+            </tr>
+            {"".join([f"<tr><td>{estado['estado']}</td><td>{estado['administrador']}</td><td>{estado['fecha']}</td></tr>" for estado in estados_recojo])}
+        </table>
+    </div>
+
+    <div class="footer">
+        <p>Gracias por usar nuestros servicios.</p>
+    </div>
+
+    </body>
+    </html>
+    """
+
+    pdf_file = BytesIO()
+    pisa_status = pisa.CreatePDF(html_string, dest=pdf_file)
+
+    if pisa_status.err:
+        return None  # Si ocurre un error al generar el PDF
+
+    pdf_file.seek(0)
+    return pdf_file
+
+@csrf_exempt
+def enviar_pdf_recojo_inactivo(request):
+    if request.method == 'POST':
+        try:
+            # Recibir los datos en formato JSON
+            data = json.loads(request.body)
+            usuario_id = data.get('usuario_id')
+
+            # Obtener los datos del usuario
+            usuario = Usuario.objects.filter(id=usuario_id).values(
+                'id', 'nombre', 'apellido', 'DNI', 'email', 'direccion', 'numero_contacto'
+            ).first()
+
+            if not usuario:
+                return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+            # Generar el PDF con los detalles del recojo
+            pdf_buffer = generar_pdf_estados_recojo(usuario, [])
+            if pdf_buffer:
+                # Crear el cuerpo del mensaje de correo
+                cuerpo_mensaje = f"""
+                Estimado/a {usuario['nombre']} {usuario['apellido']},
+
+                Nos complace informarle que su solicitud de recojo ha sido completada y el estado de su recojo ha sido marcado como inactivo.
+
+                A continuación, encontrará el detalle completo de su recojo en el archivo PDF adjunto. En él se incluyen los estados más relevantes de su servicio y la información asociada.
+
+                Información del recojo:
+                - DNI: {usuario['DNI']}
+                - Dirección: {usuario['direccion']}
+                - Número de contacto: {usuario['numero_contacto']}
+
+                Puede consultar más detalles en el archivo PDF adjunto. Si tiene alguna duda o necesita más información, no dude en contactarnos.
+
+                Agradecemos su confianza en nuestro servicio y quedamos a su disposición para cualquier consulta.
+
+                Atentamente,
+                El equipo de Verde Ulima
+                """
+
+                # Crear el correo electrónico
+                email = EmailMessage(
+                    subject='Detalles de tu Recojo - Verde Ulima',
+                    body=cuerpo_mensaje,
+                    from_email='verdeulima@gmail.com',
+                    to=[usuario['email']]
+                )
+
+                # Adjuntar el PDF generado
+                email.attach('boleta_recojo.pdf', pdf_buffer.read(), 'application/pdf')
+
+                # Enviar el correo
+                email.send()
+
+                return JsonResponse({'message': 'PDF enviado con éxito'}, status=200)
+
+            else:
+                return JsonResponse({'error': 'Error al generar el PDF'}, status=500)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'JSON inválido'}, status=400)
+
+    return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
