@@ -26,7 +26,7 @@ class GestorPlanService:
     def obtener_plan_contratado(usuario_id):
         try:
             usuario = Usuario.objects.get(id=usuario_id)
-            gestor_plan = GestorPlan.objects.filter(usuario=usuario).last()
+            gestor_plan = GestorPlan.objects.filter(usuario=usuario, validado=True).last()
 
             if gestor_plan and gestor_plan.plan:
                 plan = gestor_plan.plan

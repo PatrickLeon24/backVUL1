@@ -34,7 +34,7 @@ class TrayectoriaAdmin(admin.ModelAdmin):
 # Registro del modelo Pago
 @admin.register(Pago)
 class PagoAdmin(admin.ModelAdmin):
-    list_display = ('id', 'estado', 'metodo_pago', 'fecha_pago')
+    list_display = ('id', 'estado', 'metodo_pago', 'fecha_pago', 'monto_pago')
     search_fields = ('estado', 'metodo_pago')
 
 # Registro del modelo Plan
@@ -46,7 +46,7 @@ class PlanAdmin(admin.ModelAdmin):
 
 @admin.register(GestorPlan)
 class GestorPlanAdmin(admin.ModelAdmin):
-    list_display = ('id', 'usuario', 'plan', 'pago', 'recojos_solicitados')
+    list_display = ('id', 'usuario', 'plan', 'pago', 'recojos_solicitados', 'validado')
     search_fields = ('usuario__email', 'plan__nombre')
 
 # Registro del modelo Recojo
@@ -71,3 +71,7 @@ class TokenAdmin(admin.ModelAdmin):
     list_display = ('id', 'usuario', 'token', 'fecha_creacion', 'activo')
     search_fields = ('usuario__nombre', 'usuario__apellido', 'token')
     list_filter = ('activo',)
+
+@admin.register(Notificacion)
+class NotificacionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'usuario', 'administrador', 'mensaje')

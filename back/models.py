@@ -1,4 +1,6 @@
 from django.db import models
+from django.utils import timezone
+from django.utils.timezone import localtime
 # Create your models here.
 
 # Tipo de Usuario
@@ -58,6 +60,7 @@ class Pago(models.Model):
     estado = models.CharField(max_length=30)
     metodo_pago = models.CharField(max_length=15)
     fecha_pago = models.DateField()
+    monto_pago = models.FloatField(default=0)
 
     def __str__(self):
         return f'{self.metodo_pago} - {self.estado}'
@@ -84,6 +87,7 @@ class GestorPlan(models.Model):
     plan = models.ForeignKey(Plan, on_delete=models.CASCADE)
     pago = models.ForeignKey(Pago, on_delete=models.CASCADE)
     recojos_solicitados = models.IntegerField(default=0)
+    validado = models.BooleanField(default=False)
 
     def __str__(self):
         return f'{self.usuario} - {self.plan}'
@@ -120,17 +124,20 @@ class CodigoInvitacion(models.Model):
     
 # Token
 class Token(models.Model):
-    # Relación con Usuario
-    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
-    
-    # Generación de un token único
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True)
     token = models.CharField(max_length=10, unique=True)
-
-    # Fecha de creación del token
     fecha_creacion = models.DateTimeField(auto_now_add=True)
-
     activo = models.BooleanField(default=False)
-
 
     def __str__(self):
         return f'Token de {self.usuario} - {self.token}'
+    
+class Notificacion(models.Model):
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name="notificaciones")
+    administrador = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, related_name="notificaciones_enviadas")
+    mensaje = models.TextField()
+    fecha_creacion = models.DateTimeField(default=timezone.now)
+    leido = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Notificación para {self.usuario.email} - Leído: {self.leido}"

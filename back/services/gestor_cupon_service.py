@@ -35,7 +35,7 @@ class GestorCuponService:
 
             # Generar la URL del QR llamando al método separado
             url_qr = GestorCuponService.generar_url_qr()
-            fecha_canje = timezone.now().date()
+            fecha_canje = timezone.localtime()
 
             # Registrar el canje en el modelo GestorCupon con la URL del QR
             GestorCupon.objects.create(usuario=usuario, cupon=cupon, url_qr=url_qr, fecha_canje=fecha_canje)
