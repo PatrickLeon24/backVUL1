@@ -1,6 +1,9 @@
-from back.models import Usuario, CodigoInvitacion, Token
+from back.models import Usuario, CodigoInvitacion, Token, Recojo_trayectoria, Recojo
+from django.utils import timezone
 import random
 import string
+from back.services.recojo_trayectoria_service import RecojoTrayectoriaService
+
 class UsuarioService:
     @staticmethod
     def verificar_contrasena(contrasena):
@@ -113,6 +116,18 @@ class UsuarioAdminService(UsuarioService):
         )
         return usuarios_con_recojos
 
+    @staticmethod
+    def siguiente_trayectoria(recojo, administrador, usuario, nueva_trayectoria_id, estado_mensaje):
+        return RecojoTrayectoriaService.siguiente(recojo, administrador, usuario, nueva_trayectoria_id, estado_mensaje)
+
+    @staticmethod
+    def retroceder_trayectoria(recojo, administrador, usuario):
+        return RecojoTrayectoriaService.retroceder(recojo, administrador, usuario)
+    
+    @staticmethod
+    def finalizar_recojo(recojo, administrador, usuario, gestor_plan):
+        return RecojoTrayectoriaService.finalizar(recojo, administrador, usuario, gestor_plan)
+
 class UsuarioClienteService(UsuarioService):
 
     @staticmethod
@@ -148,6 +163,45 @@ class UsuarioClienteService(UsuarioService):
             
         )
         return usuarios_con_recojos
+    
+    @staticmethod
+    def cancelar_recojo(usuario_id):
+        if not usuario_id:
+            return {'error': 'Faltan campos obligatorios: usuario_id', 'status': 400}
+
+        # Verificar que el usuario exista
+        usuario = Usuario.objects.filter(id=usuario_id).first()
+        if not usuario:
+            return {'error': 'Usuario no encontrado', 'status': 404}
+
+        # Verificar si hay un recojo activo para el usuario
+        recojo_activo = Recojo.objects.filter(gestor_plan__usuario=usuario, activo=True).first()
+        if not recojo_activo:
+            return {'error': 'No hay recojos activos para cancelar.', 'status': 400}
+
+        # Obtener la última trayectoria asociada al recojo
+        ultima_trayectoria = Recojo_trayectoria.objects.filter(recojo=recojo_activo).order_by('id').last()
+
+        # Verificar que la última trayectoria tenga estado "1"
+        if ultima_trayectoria.trayectoria.estado != '1':
+            return {'error': 'El recojo no se puede cancelar porque ya se superó el primer estado.', 'status': 400}
+
+        # Actualizar el estado del recojo a inactivo
+        recojo_activo.activo = False
+        recojo_activo.save()
+
+        # Devolver el recojo cancelado al gestor de planes
+        gestor_plan = recojo_activo.gestor_plan
+        if gestor_plan:
+            gestor_plan.recojos_solicitados -= 1
+            gestor_plan.save()
+
+        return {
+            'mensaje': 'Recojo cancelado y devuelto exitosamente al gestor de planes',
+            'recojo_id': recojo_activo.id,
+            'recojos_solicitados': gestor_plan.recojos_solicitados,
+            'status': 200
+        }
     
 class UsuarioServiceFactory:
     @staticmethod

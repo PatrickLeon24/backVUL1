@@ -350,16 +350,13 @@ def verificar_trayectoria_recojo(request):
             data = json.loads(request.body)
             usuario_id = data.get('usuario_id')
 
-            # Validar que se haya enviado el usuario_id
             if not usuario_id:
                 return JsonResponse({'error': 'Faltan campos obligatorios: usuario_id'}, status=400)
 
-            # Verificar que el usuario exista
             usuario = Usuario.objects.filter(id=usuario_id).first()
             if not usuario:
                 return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
 
-            # Obtener el gestor de plan del usuario
             gestor_plan = GestorPlan.objects.filter(usuario=usuario).last()
             if not gestor_plan:
                 return JsonResponse({'error': 'No se encontró un plan asociado para el usuario'}, status=404)
@@ -368,7 +365,6 @@ def verificar_trayectoria_recojo(request):
             if not recojo:
                 return JsonResponse({'error': 'No se encontró un recojo activo para el usuario'}, status=404)
 
-            # Obtener todas las trayectorias de recojo
             trayectorias = Recojo_trayectoria.objects.filter(recojo=recojo).order_by('id')
             if not trayectorias:
                 return JsonResponse({'error': 'No se encontraron trayectorias asociadas al recojo'}, status=404)
@@ -382,10 +378,9 @@ def verificar_trayectoria_recojo(request):
             for r_t in trayectorias:
                 estado = r_t.trayectoria.estado
                 
-                # Si el estado ya fue registrado, lo saltamos
+                # Si el estado ya fue registrado, se salta
                 if estado in estados_vistos:
                     continue
-
                
                 estado_trayectoria.append(estado)
                 estados_vistos.add(estado)
@@ -498,7 +493,7 @@ def consultar_recojoR(request):
 
             # Intentar retroceder trayectoria
             try:
-                retroceder_trayectoria(recojo, administrador, usuario)
+                UsuarioAdminService.retroceder_trayectoria(recojo, administrador, usuario)
                 return JsonResponse({'status': 'success', 'message': 'Estado retrocedido correctamente.'}, status=200)
             except ValueError as e:
                 return JsonResponse({'error': str(e)}, status=400)
@@ -507,49 +502,6 @@ def consultar_recojoR(request):
             return JsonResponse({'error': 'JSON inválido'}, status=400)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
-
-def retroceder_trayectoria(recojo, administrador, usuario):
-    # Obtener la trayectoria actual
-    trayectoria_actual = Recojo_trayectoria.objects.filter(recojo=recojo).last()
-    if not trayectoria_actual:
-        raise ValueError("No se encontró una trayectoria asociada al recojo.")
-
-    # Obtener el estado actual
-    estado_actual = int(trayectoria_actual.trayectoria.estado)
-
-    # Verificar si se puede retroceder
-    if estado_actual <= 1:
-        raise ValueError("El estado no puede retroceder más.")
-
-    # Retroceder el estado
-    nuevo_estado = estado_actual - 1
-    nueva_trayectoria = Trayectoria.objects.get(estado=nuevo_estado)
-
-    # Eliminar la trayectoria actual
-    trayectoria_actual.delete()
-
-    # Crear una nueva trayectoria con el estado retrocedido
-    Recojo_trayectoria.objects.create(
-        estado_ingreso=timezone.localtime(),
-        recojo=recojo,
-        trayectoria=nueva_trayectoria,
-        administrador=administrador if nuevo_estado > 1 else None
-    )
-
-    # Mensajes personalizados según el nuevo estado
-    mensajes_personalizados = {
-        '1': "Su pedido ha regresado al estado original.",
-        '2': "Su pedido ha regresado al estado 'En preparación'.",
-        '3': "Su pedido ha regresado al estado 'En camino'.",
-    }
-    mensaje = mensajes_personalizados.get(str(nuevo_estado), "El estado de su pedido ha cambiado.")
-
-    # Crear una notificación para el usuario
-    Notificacion.objects.create(
-        usuario=usuario,
-        administrador=administrador,
-        mensaje=mensaje
-    )
 
 @csrf_exempt
 def send_email(request):
@@ -707,43 +659,13 @@ def cancelar_recojo(request):
         try:
             data = json.loads(request.body)
             usuario_id = data.get('usuario_id')
-            
-            # Validar que se haya enviado el usuario_id
-            if not usuario_id:
-                return JsonResponse({'error': 'Faltan campos obligatorios: usuario_id'}, status=400)
 
-            # Verificar que el usuario exista
-            usuario = Usuario.objects.filter(id=usuario_id).first()
-            if not usuario:
-                return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+            resultado = UsuarioClienteService.cancelar_recojo(usuario_id)
 
-            # Verificar si hay un recojo activo para el usuario
-            recojo_activo = Recojo.objects.filter(gestor_plan__usuario=usuario, activo=True).first()
-            if not recojo_activo:
-                return JsonResponse({'error': 'No hay recojos activos para cancelar.'}, status=400)
-
-            # Obtener la última trayectoria asociada al recojo
-            ultima_trayectoria = Recojo_trayectoria.objects.filter(recojo=recojo_activo).order_by('id').last()
-
-            # Verificar que la última trayectoria tenga estado "1"
-            if ultima_trayectoria.trayectoria.estado != '1':
-                return JsonResponse({'error': 'El recojo no se puede cancelar porque ya se superó el primer estado.'}, status=400)
-
-            # Actualizar el estado del recojo a inactivo
-            recojo_activo.activo = False
-            recojo_activo.save()
-
-            # Devolver el recojo cancelado al gestor de planes
-            gestor_plan = recojo_activo.gestor_plan
-            if gestor_plan:
-                gestor_plan.recojos_solicitados -= 1
-                gestor_plan.save()
-
-            return JsonResponse({
-                'mensaje': 'Recojo cancelado y devuelto exitosamente al gestor de planes',
-                'recojo_id': recojo_activo.id,
-                'recojos_solicitados': gestor_plan.recojos_solicitados
-            }, status=200)
+            return JsonResponse(
+                resultado,
+                status=resultado.get('status', 500)
+            )
 
         except Exception as e:
             return JsonResponse({'error': f'Error al cancelar el recojo: {str(e)}'}, status=500)
@@ -1174,16 +1096,16 @@ def consultar_recojo(request):
             estados_recojo = []
 
             if int(trayecto.estado) == 1:  # En Preparación
-                actualizar_trayectoria(recojo, administrador, usuario, 2, "En Preparación")
+                UsuarioAdminService.siguiente_trayectoria(recojo, administrador, usuario, 2, "En Preparación")
 
             elif int(trayecto.estado) == 2:  # En Camino
-                actualizar_trayectoria(recojo, administrador, usuario, 3, "En Camino")
+                UsuarioAdminService.siguiente_trayectoria(recojo, administrador, usuario, 3, "En Camino")
 
             elif int(trayecto.estado) == 3:  # Entregado
-                actualizar_trayectoria(recojo, administrador, usuario, 4, "Entregado")
+                UsuarioAdminService.siguiente_trayectoria(recojo, administrador, usuario, 4, "Entregado")
 
             elif int(trayecto.estado) == 4:  # Finalizado
-                finalizar_recojo(recojo, administrador, usuario, gestor_plan)
+                UsuarioAdminService.finalizar_recojo(recojo, administrador, usuario, gestor_plan)
 
                 # Obtener historial de estados del recojo
                 trayectorias_recojo = Recojo_trayectoria.objects.filter(recojo=recojo)
@@ -1209,35 +1131,6 @@ def consultar_recojo(request):
             return JsonResponse({'status': 'error', 'message': 'JSON inválido'}, status=400)
 
     return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
-
-@csrf_exempt
-def actualizar_trayectoria(recojo, administrador, usuario, nueva_trayectoria_id, estado_mensaje):
-    trayectoria_obj = Trayectoria.objects.get(id=nueva_trayectoria_id)
-    Recojo_trayectoria.objects.create(
-        estado_ingreso=timezone.localtime(),
-        recojo=recojo,
-        trayectoria=trayectoria_obj,
-        administrador=administrador
-    )
-    Notificacion.objects.create(
-        usuario=usuario,
-        administrador=administrador,
-        mensaje=f"El estado de su pedido ha cambiado a '{estado_mensaje}'."
-    )
-
-@csrf_exempt
-def finalizar_recojo(recojo, administrador, usuario, gestor_plan):
-    recojo.activo = False
-    recojo.fecha_salida = timezone.localtime()
-    recojo.save()
-    usuario.puntaje_acumulado += gestor_plan.plan.puntos_plan
-    usuario.save()
-
-    Notificacion.objects.create(
-        usuario=usuario,
-        administrador=administrador, 
-        mensaje=f"Su pedido ha sido finalizado correctamente y se han sumado {gestor_plan.plan.puntos_plan} puntos a su cuenta."
-    )
 
 @csrf_exempt
 def enviar_correo_recojo(usuario, estados_recojo):
