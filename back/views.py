@@ -28,6 +28,7 @@ from rest_framework import status
 import os
 from django.utils.html import strip_tags
 from xhtml2pdf import pisa
+from django.core.exceptions import ObjectDoesNotExist
 
 @csrf_exempt
 def inicio_sesion(request):
@@ -405,17 +406,23 @@ def verificar_trayectoria_recojo(request):
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
 @csrf_exempt
-def obtener_recojos(request):
+def obtener_recojos(request, administrador_id):
     if request.method == 'GET':
         try:
-            # Extraer campos relevantes
+            try:
+                administrador = Usuario.objects.get(id=administrador_id)
+            except ObjectDoesNotExist:
+                return JsonResponse({'error': 'Administrador no encontrado'}, status=404)
+
+            # Extraer los recojos con detalles de la trayectoria
             usuarios_data = list(UsuarioAdminService.obtener_usuarios_con_recojos().values(
                 'id', 'nombre', 'apellido', 'direccion', 'numero_contacto', 'DNI',
                 'gestorplan__plan__nombre',
                 'gestorplan__recojo__id',
                 'gestorplan__recojo__fecha_ingreso',
                 'gestorplan__recojo__recojo_trayectoria__trayectoria__estado',
-                'gestorplan__recojo__recojo_trayectoria__id' 
+                'gestorplan__recojo__recojo_trayectoria__id',
+                'gestorplan__recojo__recojo_trayectoria__administrador__id'
             ))
 
             # Diccionario para almacenar el último recojo por usuario
@@ -425,23 +432,33 @@ def obtener_recojos(request):
             for usuario in usuarios_data:
                 usuario_id = usuario['id']
                 recojo_trayectoria_id = usuario['gestorplan__recojo__recojo_trayectoria__id']
+                recojo_estado = int(usuario['gestorplan__recojo__recojo_trayectoria__trayectoria__estado'])  # Convertir a entero
+                administrador_asignado_id = usuario['gestorplan__recojo__recojo_trayectoria__administrador__id']
 
-                # Si el usuario no está en el diccionario, lo agregamos
+                # Si el usuario ya tiene un recojo con este ID, comparar cuál tiene el último estado
                 if usuario_id not in usuarios_con_ultimo_recojo:
                     usuarios_con_ultimo_recojo[usuario_id] = usuario
                 else:
-                    # Si ya existe el usuario, comparamos el id del recojo_trayectoria actual con el almacenado
-                    print(recojo_trayectoria_id)
-                    print(usuarios_con_ultimo_recojo[usuario_id]['gestorplan__recojo__recojo_trayectoria__id'])
+                    # Comparar las trayectorias por ID y actualizar con el último estado
                     if recojo_trayectoria_id > usuarios_con_ultimo_recojo[usuario_id]['gestorplan__recojo__recojo_trayectoria__id']:
                         usuarios_con_ultimo_recojo[usuario_id] = usuario
 
-            # Convertir el diccionario de vuelta a una lista si lo necesitas
-            usuarios_final = list(usuarios_con_ultimo_recojo.values())
-            
+            # Visibilidad del estado del recojo
+            usuarios_final = []
+            for usuario in usuarios_con_ultimo_recojo.values():
+                recojo_estado = int(usuario['gestorplan__recojo__recojo_trayectoria__trayectoria__estado'])  # Convertir a entero
+                administrador_asignado_id = usuario['gestorplan__recojo__recojo_trayectoria__administrador__id']
+
+                # Si el estado es 1, el recojo es visible para todos los administradores
+                if recojo_estado == 1:
+                    usuarios_final.append(usuario)
+                # Si el estado es 2 o más, solo el administrador asignado puede verlo
+                elif recojo_estado >= 2:
+                    if administrador.id == administrador_asignado_id:
+                        usuarios_final.append(usuario)
+
             return JsonResponse(usuarios_final, safe=False, status=200)
         except Exception as e:
-            # Devuelve el error en un formato JSON
             return JsonResponse({'error': f'Error al obtener los usuarios con recojo: {str(e)}'}, status=500)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
