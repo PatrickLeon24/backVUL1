@@ -588,25 +588,24 @@ def canjear_cupon(request):
 def obtener_recojos_por_administrador(request, usuario_id):
     if request.method == 'GET':
         try:
-            # Filtrar recojos finalizados relacionados con el administrador específico
-            recojos_finalizados = Recojo_trayectoria.objects.filter(
+            recojos_desactivados = Recojo_trayectoria.objects.filter(
                 administrador_id=usuario_id,
-                trayectoria__estado='4'
+                recojo__activo=False 
             ).values(
+                'recojo_id',
                 'recojo__fecha_salida',
-                'recojo__gestor_plan__usuario__nombre', 
-                'recojo__gestor_plan__usuario__apellido', 
+                'recojo__gestor_plan__usuario__nombre',
+                'recojo__gestor_plan__usuario__apellido',
                 'recojo__gestor_plan__plan__nombre'
-            )
+            ).distinct('recojo_id')
 
-            recojos_list = list(recojos_finalizados)
-            print(recojos_list)
+            recojos_list = list(recojos_desactivados)
 
             return JsonResponse(recojos_list, safe=False, status=200)
 
         except Exception as e:
             # Manejo de errores
-            return JsonResponse({'error': f'Error al obtener los recojos: {str(e)}'}, status=500)
+            return JsonResponse({'error': f'Error al obtener los recojos desactivados: {str(e)}'}, status=500)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
