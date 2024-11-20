@@ -15,7 +15,7 @@ urlpatterns = [
     path('solicitar_recojo', views.iniciar_recojo),
     path('cancelar_recojo', views.cancelar_recojo),
     path('estado_pedido', views.verificar_trayectoria_recojo),
-    path('obtener_recojos', views.obtener_recojos),
+    path('obtener_recojos/<int:administrador_id>/', views.obtener_recojos),
     path('historial_recojos/<int:usuario_id>/', views.obtener_recojos_por_administrador),
     path('historial_codigos/<int:usuario_id>/', views.obtener_codigos_invitacion),     
     path('puntos/<int:usuario_id>/', views.obtener_puntaje_usuario),
@@ -32,5 +32,4 @@ urlpatterns = [
     path('validar_pago/<int:pago_id>/', views.validar_pago, name='validar_pago'),
     path('enviar_PDF', views.enviar_PDF),
     path('notificaciones', views.ultimas_notificaciones)
-    
     ]
