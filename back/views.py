@@ -719,14 +719,20 @@ def obtener_historial_cupones(request, usuario_id):
         cupones_canjeados = GestorCupon.objects.filter(usuario_id=usuario_id)
 
         # Construye una lista de los cupones canjeados con los datos necesarios
-        historial = [
-            {
-                'nombre_cupon': str(cupon.cupon),  # Usamos el método __str__ para el "nombre"
+        historial = []
+        for cupon in cupones_canjeados:
+            # Si el campo cupon está vacío
+            if cupon.cupon is None:
+                nombre_cupon = cupon.nombre_cupon
+            else:
+                # Si el cupon existe
+                nombre_cupon = str(cupon.cupon)
+
+            historial.append({
+                'nombre_cupon': nombre_cupon,
                 'fecha_canje': cupon.fecha_canje,
                 'url_qr': cupon.url_qr,
-            }
-            for cupon in cupones_canjeados
-        ]
+            })
 
         # Retorna el historial en formato JSON
         return JsonResponse(historial, safe=False)
@@ -734,6 +740,7 @@ def obtener_historial_cupones(request, usuario_id):
     except Exception as e:
         # Manejo de errores en caso de que ocurra un problema
         return JsonResponse({'error': str(e)}, status=500)
+
     
 @csrf_exempt
 def verificar_recojo_activo(request, usuario_id):
@@ -752,8 +759,6 @@ def verificar_recojo_activo(request, usuario_id):
                 print("ola")
                 return JsonResponse({'error': 'No se encontró un plan asociado para el usuario'}, status=404)
 
-           
-            
             recojo_activo = Recojo.objects.filter(gestor_plan__usuario__id=usuario_id, activo=True).exists()
             print(recojo_activo)
             return JsonResponse({'recojo_activo': recojo_activo})
