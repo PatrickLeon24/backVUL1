@@ -280,6 +280,7 @@ def iniciar_recojo(request):
             data = json.loads(request.body)
             usuario_id = data.get('usuario_id')
             print(usuario_id)
+
             # Validar que se haya enviado el usuario_id
             if not usuario_id:
                 return JsonResponse({'error': 'Faltan campos obligatorios: usuario_id'}, status=400)
@@ -289,31 +290,40 @@ def iniciar_recojo(request):
             if not usuario:
                 return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
             print(usuario)
+
             # Verificar si ya hay un recojo activo para el usuario
             recojo_activo = Recojo.objects.filter(gestor_plan__usuario=usuario, activo=True).first()
             if recojo_activo:
                 return JsonResponse({'error': 'El recojo solicitado anteriormente aún no se ha completado.'}, status=400)
             print(recojo_activo)
+
             # Obtener el gestor de plan del usuario
             gestor_plan = GestorPlan.objects.filter(usuario=usuario).last()
             if not gestor_plan:
                 return JsonResponse({'error': 'No se encontró un plan asociado para el usuario'}, status=404)
             print(gestor_plan)
 
+            # Verificar si el plan asociado fue eliminado
+            if not gestor_plan.plan:
+                return JsonResponse({
+                    'error': 'El plan asociado ha sido eliminado. Por favor, actualice a un nuevo plan.'
+                }, status=400)
+
+            # Verificar si el plan aún no ha sido validado
             if not gestor_plan.validado:
-                return JsonResponse({'error': ' El plan aún no ha sido validado para iniciar un recojo'}, status=400)
-            
+                return JsonResponse({'error': 'El plan aún no ha sido validado para iniciar un recojo'}, status=400)
+
             # Verificar si se ha alcanzado la frecuencia máxima de recojos
             if gestor_plan.recojos_solicitados >= gestor_plan.plan.frecuencia_recojo:
-                return JsonResponse({'error': 'Se ha alcanzado el limite de recojos por su plan contratado'}, status=400)
+                return JsonResponse({'error': 'Se ha alcanzado el límite de recojos por su plan contratado'}, status=400)
 
             # Incrementar el contador de recojos solicitados
             gestor_plan.recojos_solicitados += 1
             gestor_plan.save()
 
             # Crear una nueva trayectoria con estado "1"
-            nueva_trayectoria = Trayectoria.objects.get(id=1) 
-            
+            nueva_trayectoria = Trayectoria.objects.get(id=1)
+
             # Crear un nuevo recojo asociado al gestor de plan y la trayectoria inicial
             nuevo_recojo = Recojo.objects.create(
                 fecha_ingreso=timezone.localtime().date(),
@@ -328,11 +338,13 @@ def iniciar_recojo(request):
                 trayectoria=nueva_trayectoria
             )
 
+            # Crear notificación para el usuario
             Notificacion.objects.create(
-                usuario = usuario,
-                administrador = None,
+                usuario=usuario,
+                administrador=None,
                 mensaje="Su solicitud ha sido recibida"
             )
+
             return JsonResponse({
                 'mensaje': 'Recojo iniciado exitosamente',
                 'recojo_id': nuevo_recojo.id,
@@ -417,7 +429,7 @@ def obtener_recojos(request, administrador_id):
             # Extraer los recojos con detalles de la trayectoria
             usuarios_data = list(UsuarioAdminService.obtener_usuarios_con_recojos().values(
                 'id', 'nombre', 'apellido', 'direccion', 'numero_contacto', 'DNI',
-                'gestorplan__plan__nombre',
+                'gestorplan__nombre_plan',
                 'gestorplan__recojo__id',
                 'gestorplan__recojo__fecha_ingreso',
                 'gestorplan__recojo__recojo_trayectoria__trayectoria__estado',
@@ -697,7 +709,7 @@ def obtener_recojosus(request, usuario_id):
             # Filtrar por usuario específico y recojos activos
             usuarios_data = list(UsuarioClienteService.obtener_usuarios_con_recojosus(user_id).values(
                 'id', 'nombre', 'apellido', 'direccion', 'numero_contacto', 'DNI',
-                'gestorplan__plan__nombre',
+                'gestorplan__nombre_plan',
                 'gestorplan__recojo__id',
                 'gestorplan__recojo__fecha_ingreso',
                 'gestorplan__recojo__fecha_salida',
@@ -719,14 +731,20 @@ def obtener_historial_cupones(request, usuario_id):
         cupones_canjeados = GestorCupon.objects.filter(usuario_id=usuario_id)
 
         # Construye una lista de los cupones canjeados con los datos necesarios
-        historial = [
-            {
-                'nombre_cupon': str(cupon.cupon),  # Usamos el método __str__ para el "nombre"
+        historial = []
+        for cupon in cupones_canjeados:
+            # Si el campo cupon está vacío
+            if cupon.cupon is None:
+                nombre_cupon = cupon.nombre_cupon
+            else:
+                # Si el cupon existe
+                nombre_cupon = str(cupon.cupon)
+
+            historial.append({
+                'nombre_cupon': nombre_cupon,
                 'fecha_canje': cupon.fecha_canje,
                 'url_qr': cupon.url_qr,
-            }
-            for cupon in cupones_canjeados
-        ]
+            })
 
         # Retorna el historial en formato JSON
         return JsonResponse(historial, safe=False)
@@ -734,6 +752,7 @@ def obtener_historial_cupones(request, usuario_id):
     except Exception as e:
         # Manejo de errores en caso de que ocurra un problema
         return JsonResponse({'error': str(e)}, status=500)
+
     
 @csrf_exempt
 def verificar_recojo_activo(request, usuario_id):
@@ -752,8 +771,6 @@ def verificar_recojo_activo(request, usuario_id):
                 print("ola")
                 return JsonResponse({'error': 'No se encontró un plan asociado para el usuario'}, status=404)
 
-           
-            
             recojo_activo = Recojo.objects.filter(gestor_plan__usuario__id=usuario_id, activo=True).exists()
             print(recojo_activo)
             return JsonResponse({'recojo_activo': recojo_activo})
@@ -769,9 +786,8 @@ def verificar_recojo_activo(request, usuario_id):
 @csrf_exempt
 def listar_pagos_no_validados(request):
     # Filtrar solo los pagos no validados
-    pagos_no_validados = GestorPlan.objects.filter(validado=False).select_related('pago')  # Asegurarse de usar select_related para optimizar la consulta si 'pago' es una FK
+    pagos_no_validados = GestorPlan.objects.filter(validado=False).select_related('pago')  # Usar select_related para  la consulta si 'pago' es una FK
 
-    # Serializar los datos
     data = [
         {
             'id': pago.id,
@@ -789,12 +805,16 @@ def listar_pagos_no_validados(request):
 def validar_pago(request, pago_id):
     if request.method == 'POST':
         try:
-            pago = GestorPlan.objects.get(id=pago_id)
-            pago.validado = True
-            pago.save()
-            return JsonResponse({'success': True, 'message': 'Pago validado correctamente.'})
-        except GestorPlan.DoesNotExist:
-            return JsonResponse({'success': False, 'message': 'Pago no encontrado.'}, status=404)
+            result = UsuarioAdminService.validacion_pago(pago_id)
+
+            if result['success']:
+                return JsonResponse(result, status=200)
+            else:
+                return JsonResponse(result, status=404)
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Error inesperado: {str(e)}'}, status=500)
+
     return JsonResponse({'success': False, 'message': 'Método no permitido.'}, status=405)
 
 # Función para generar un PDF con estilo de voucher
@@ -1158,7 +1178,7 @@ def enviar_correo_recojo(usuario, estados_recojo):
 
         # Cuerpo del mensaje
         cuerpo_mensaje = f"""
-        Estimado/a {usuario.nombre} {usuario.apellido},
+        Estimado(a) {usuario.nombre} {usuario.apellido},
 
         Nos complace informarle que su solicitud de recojo ha sido completada con éxito. Adjunto a este correo encontrará el detalle completo del proceso de recojo en formato PDF.
 
