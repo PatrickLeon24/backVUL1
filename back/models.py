@@ -87,6 +87,7 @@ class GestorPlan(models.Model):
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
     plan = models.ForeignKey(Plan, on_delete=models.SET_NULL, null=True)
     nombre_plan = models.CharField(max_length=100, null=True)
+    puntos_backup = models.IntegerField(null=True)
     pago = models.ForeignKey(Pago, on_delete=models.CASCADE)
     recojos_solicitados = models.IntegerField(default=0)
     validado = models.BooleanField(default=False)
@@ -99,7 +100,7 @@ class Recojo(models.Model):
     fecha_ingreso = models.DateField()
     fecha_salida = models.DateField(null=True, blank=True)
     activo = models.BooleanField(default=True)
-    gestor_plan = models.ForeignKey(GestorPlan, on_delete=models.CASCADE, null=True)
+    gestor_plan = models.ForeignKey(GestorPlan, on_delete=models.SET_NULL, null=True)
     
     def __str__(self):
         return f'Recojo {self.gestor_plan} - {self.fecha_ingreso}'

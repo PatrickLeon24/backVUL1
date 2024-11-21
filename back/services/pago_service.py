@@ -1,4 +1,4 @@
-from back.models import Pago
+from back.models import Pago, GestorPlan, Notificacion
 
 class PagoService:
 
@@ -13,3 +13,25 @@ class PagoService:
         )
         nuevo_pago.save()
         return nuevo_pago
+    
+    @staticmethod
+    def validar_pago(pago_id):
+        try:
+            # Buscar el pago en GestorPlan
+            gestor_plan = GestorPlan.objects.get(id=pago_id)
+            
+            # Marcar el pago como validado
+            gestor_plan.validado = True
+            gestor_plan.save()
+
+            # Notificar al usuario
+            usuario = gestor_plan.usuario
+            Notificacion.objects.create(
+                usuario=usuario,
+                administrador=None,
+                mensaje="Su pago ha sido validado exitosamente. ¡Gracias por usar nuestro servicio!"
+            )
+
+            return {'success': True, 'message': 'Pago validado correctamente.'}
+        except GestorPlan.DoesNotExist:
+            return {'success': False, 'message': 'Pago no encontrado.'}

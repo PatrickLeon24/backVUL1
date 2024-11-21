@@ -61,17 +61,3 @@ class RecojoTrayectoriaService:
             administrador=administrador,
             mensaje=mensaje
         )
-
-    @staticmethod
-    def finalizar(recojo, administrador, usuario, gestor_plan):
-        recojo.activo = False
-        recojo.fecha_salida = timezone.localtime()
-        recojo.save()
-        usuario.puntaje_acumulado += gestor_plan.plan.puntos_plan
-        usuario.save()
-
-        Notificacion.objects.create(
-            usuario=usuario,
-            administrador=administrador, 
-            mensaje=f"Su pedido ha sido finalizado correctamente y se han sumado {gestor_plan.plan.puntos_plan} puntos a su cuenta."
-        )

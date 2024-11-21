@@ -3,6 +3,8 @@ from django.utils import timezone
 import random
 import string
 from back.services.recojo_trayectoria_service import RecojoTrayectoriaService
+from back.services.recojo_service import RecojoService
+from back.services.pago_service import PagoService
 
 class UsuarioService:
     @staticmethod
@@ -126,7 +128,11 @@ class UsuarioAdminService(UsuarioService):
     
     @staticmethod
     def finalizar_recojo(recojo, administrador, usuario, gestor_plan):
-        return RecojoTrayectoriaService.finalizar(recojo, administrador, usuario, gestor_plan)
+        return RecojoService.finalizar(recojo, administrador, usuario, gestor_plan)
+    
+    @staticmethod
+    def validacion_pago(pago_id):
+        return PagoService.validar_pago(pago_id)
 
 class UsuarioClienteService(UsuarioService):
 
