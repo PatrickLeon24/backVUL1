@@ -1178,40 +1178,107 @@ def enviar_correo_recojo(usuario, estados_recojo):
 
         # Cuerpo del mensaje
         cuerpo_mensaje = f"""
-        Estimado(a) {usuario.nombre} {usuario.apellido},
-
-        Nos complace informarle que su solicitud de recojo ha sido completada con éxito. Adjunto a este correo encontrará el detalle completo del proceso de recojo en formato PDF.
-
-        A continuación, le proporcionamos la información relacionada con su recojo:
-
-        - **DNI**: {usuario.DNI}
-        - **Dirección**: {usuario.direccion}
-        - **Número de contacto**: {usuario.numero_contacto}
-
-        Además, encontrará un resumen detallado de los estados por los que ha pasado su recojo, incluidos los administradores encargados y las fechas correspondientes.
-
-        Si tiene alguna consulta o requiere asistencia adicional, no dude en contactarnos. 
-
-        Agradecemos su confianza en nuestros servicios y esperamos seguir atendiéndole de la mejor manera.
-
-        Atentamente,
-        El equipo de Verde Ulima
+        <html>
+        <head>
+            <style>
+                body {{
+                    font-family: 'Helvetica', Arial, sans-serif;
+                    background-color: #e0e0e0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 100vh;
+                    margin: 0;
+                    padding: 20px;
+                    color: #333;
+                }}
+                .container {{
+                    width: 100%;
+                    max-width: 600px;
+                    background-color: #ffffff;
+                    padding: 30px;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+                    text-align: left;
+                }}
+                h2 {{
+                    color: #003366;
+                    font-size: 24px;
+                    font-weight: 600;
+                    margin-bottom: 20px;
+                }}
+                p {{
+                    font-size: 14px;
+                    line-height: 1.6;
+                    margin-bottom: 10px;
+                }}
+                .highlight {{
+                    color: #003366;
+                    font-weight: bold;
+                }}
+                .footer {{
+                    font-size: 12px;
+                    color: #777;
+                    text-align: center;
+                    margin-top: 30px;
+                }}
+                .footer a {{
+                    color: #003366;
+                    text-decoration: none;
+                }}
+                .footer .company {{
+                    font-size: 14px;
+                    color: #333;
+                }}
+                .footer .company a {{
+                    font-weight: bold;
+                    color: #003366;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h2>Detalles de su Recojo - {usuario.nombre} {usuario.apellido}</h2>
+                <p>Estimado(a) {usuario.nombre},</p>
+                <p>Le informamos que su solicitud de recojo ha sido <span class="highlight">completada con éxito</span>.</p>
+                <p>Adjunto a este correo encontrará el <strong>detalle del proceso de recojo</strong> en formato PDF.</p>
+                <p><strong>Detalles del Recojo:</strong></p>
+                <ul>
+                    <li><strong>DNI:</strong> {usuario.DNI}</li>
+                    <li><strong>Dirección:</strong> {usuario.direccion}</li>
+                    <li><strong>Número de contacto:</strong> {usuario.numero_contacto}</li>
+                    <li><strong>Fecha de finalización:</strong> {localtime(timezone.now()).strftime('%d/%m/%Y')}</li>
+                </ul>
+                <p>Si tiene alguna consulta o requiere asistencia adicional, no dude en contactarnos.</p>
+                <p>Gracias por confiar en nuestros servicios.</p>
+                <div class="footer">
+                    <p class="company">Atentamente, <br> El equipo de <strong>VerdeUlima</strong></p>
+                    <p>Si tiene alguna pregunta, contáctenos en <a href="mailto:verdeulima@gmail.com">verdeulima@gmail.com</a></p>
+                    <p>&copy; {timezone.now().year} VerdeUlima. Todos los derechos reservados.</p>
+                    <p><a href="#">Visite nuestro sitio web</a></p>
+                </div>
+            </div>
+        </body>
+        </html>
         """
 
         # Enviar correo
         email = EmailMessage(
-            subject='Detalles de tu Recojo - Verde Ulima',
+            subject='Detalles de su Recojo - VerdeUlima',
             body=cuerpo_mensaje,
             from_email='verdeulima@gmail.com',
             to=[usuario.email]
         )
-        email.attach('boleta_recojo_inactivo.pdf', pdf_buffer.read(), 'application/pdf')
+        email.content_subtype = "html"  # Configurar para enviar como HTML
+        email.attach('detalle_recojo.pdf', pdf_buffer.read(), 'application/pdf')
         email.send()
 
         return {'status': 'success'}
 
     except Exception as e:
         return {'error': str(e)}
+
+
 
 def generar_pdf_estados_recojo(usuario, estados_recojo):
     fecha_emision = timezone.localtime(timezone.now()).strftime("%d/%m/%Y %H:%M")
