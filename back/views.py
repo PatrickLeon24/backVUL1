@@ -51,7 +51,7 @@ def inicio_sesion(request):
             else:
                 print("olaaaaa")
                 # Usuario no encontrado para el inicio de sesión de Google
-                return JsonResponse({'message': 'No hay cuenta asociada a este correo'}, status=400)
+                return JsonResponse({'message': 'No hay cuenta asociada a este correo'})
 
         # Verificar inicio de sesión tradicional con contraseña
         if user:
