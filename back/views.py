@@ -76,13 +76,19 @@ def registrar_usuario(request):
     if request.method == 'POST':
         datos = json.loads(request.body)
 
+        # Verificar si el correo ya está registrado
+        email = datos.get('email')
+        if Usuario.objects.filter(email=email).exists():
+            return JsonResponse({'error': 'El correo ya está registrado, ingrese uno nuevo'}, status=400)
+
         # Verificar el tipo de usuario
         tipo_usuario = Tipo_Usuario.objects.filter(id=datos.get('tipo_usuario')).first()
         if not tipo_usuario:
             return JsonResponse({'error': 'Tipo de usuario no válido'}, status=400)
 
         # Verificar la contraseña
-        if not UsuarioService.verificar_contrasena(datos.get('contrasena')):
+        contrasena = datos.get('contrasena')
+        if not contrasena or len(contrasena) < 8:
             return JsonResponse({'error': 'La contraseña debe tener 8 caracteres como mínimo'}, status=400)
 
         # Validar código de invitación si el usuario es administrador
@@ -100,8 +106,8 @@ def registrar_usuario(request):
             except CodigoInvitacion.DoesNotExist:
                 return JsonResponse({'error': 'Código de invitación inválido o ya utilizado'}, status=400)
 
-        # Crear el usuario
         UsuarioService.crear_usuario(datos, tipo_usuario)
+
         return JsonResponse({'mensaje': 'Usuario registrado exitosamente'}, status=201)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
