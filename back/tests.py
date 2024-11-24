@@ -1,8 +1,8 @@
 from django.test import TestCase, Client
 from django.urls import reverse
-from django.http import JsonResponse
 from back.models import Tipo_Usuario, CodigoInvitacion, Usuario
 from unittest.mock import patch
+
 
 class RegistrarUsuarioTests(TestCase):
     def setUp(self):
@@ -14,19 +14,27 @@ class RegistrarUsuarioTests(TestCase):
         self.tipo_usuario_admin = Tipo_Usuario.objects.create(id=2, tipo="Administrador")
 
         # Crear un usuario para asignar al campo `creado_por`
-        self.creador = Usuario.objects.create(nombre="pleon", contrasena="securepassword", tipousuario=self.tipo_usuario_admin)
+        self.creador = Usuario.objects.create(nombre="pleon", email="admin@example.com", contrasena="securepassword", tipousuario=self.tipo_usuario_admin)
 
-        # Crear un código de invitación válido con un creador
+        # Crear un código de invitación válido
         self.codigo_invitacion = CodigoInvitacion.objects.create(
             codigo="INVI123",
             utilizado=False,
-            creado_por=self.creador  # Asignar el usuario creado
+            creado_por=self.creador
         )
 
-    @patch('back.services.usuario_service.UsuarioService.verificar_contrasena', return_value=True)
+        # Crear un usuario existente para pruebas de correo duplicado
+        self.usuario_existente = Usuario.objects.create(
+            nombre="usuario_existente",
+            email="test@example.com",
+            contrasena="securepassword",
+            tipousuario=self.tipo_usuario_normal
+        )
+
     @patch('back.services.usuario_service.UsuarioService.crear_usuario')
-    def test_usuario_normal_registrado_exitosamente(self, mock_crear_usuario, mock_verificar_contrasena):
+    def test_usuario_normal_registrado_exitosamente(self, mock_crear_usuario):
         datos = {
+            "email": "nuevo_usuario@example.com",
             "tipo_usuario": self.tipo_usuario_normal.id,
             "contrasena": "password123",
         }
@@ -36,19 +44,20 @@ class RegistrarUsuarioTests(TestCase):
         self.assertJSONEqual(response.content, {"mensaje": "Usuario registrado exitosamente"})
         mock_crear_usuario.assert_called_once_with(datos, self.tipo_usuario_normal)
 
-    @patch('back.services.usuario_service.UsuarioService.verificar_contrasena', return_value=False)
-    def test_contrasena_invalida(self, mock_verificar_contrasena):
+    def test_email_ya_registrado(self):
         datos = {
+            "email": "test@example.com",  # Correo ya existente
             "tipo_usuario": self.tipo_usuario_normal.id,
-            "contrasena": "short",
+            "contrasena": "password123",
         }
         response = self.client.post(self.url, data=datos, content_type="application/json")
 
         self.assertEqual(response.status_code, 400)
-        self.assertJSONEqual(response.content, {"error": "La contraseña debe tener 8 caracteres como mínimo"})
+        self.assertJSONEqual(response.content, {"error": "El correo ya está registrado, ingrese uno nuevo"})
 
     def test_tipo_usuario_invalido(self):
         datos = {
+            "email": "nuevo_usuario@example.com",
             "tipo_usuario": 999,  # ID inexistente
             "contrasena": "password123",
         }
@@ -57,8 +66,20 @@ class RegistrarUsuarioTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertJSONEqual(response.content, {"error": "Tipo de usuario no válido"})
 
+    def test_contrasena_invalida(self):
+        datos = {
+            "email": "nuevo_usuario@example.com",
+            "tipo_usuario": self.tipo_usuario_normal.id,
+            "contrasena": "short",
+        }
+        response = self.client.post(self.url, data=datos, content_type="application/json")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertJSONEqual(response.content, {"error": "La contraseña debe tener 8 caracteres como mínimo"})
+
     def test_codigo_invitacion_faltante_para_administrador(self):
         datos = {
+            "email": "admin_nuevo@example.com",
             "tipo_usuario": self.tipo_usuario_admin.id,
             "contrasena": "password123",
         }
@@ -69,6 +90,7 @@ class RegistrarUsuarioTests(TestCase):
 
     def test_codigo_invitacion_invalido_o_utilizado(self):
         datos = {
+            "email": "admin_nuevo@example.com",
             "tipo_usuario": self.tipo_usuario_admin.id,
             "contrasena": "password123",
             "codigo_invitacion": "INVALIDO",
@@ -81,6 +103,7 @@ class RegistrarUsuarioTests(TestCase):
     @patch('back.services.usuario_service.UsuarioService.crear_usuario')
     def test_administrador_registrado_exitosamente(self, mock_crear_usuario):
         datos = {
+            "email": "admin_nuevo@example.com",
             "tipo_usuario": self.tipo_usuario_admin.id,
             "contrasena": "password123",
             "codigo_invitacion": self.codigo_invitacion.codigo,
