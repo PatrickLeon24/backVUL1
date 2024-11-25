@@ -9,7 +9,7 @@ urlpatterns = [
     path("cupones", views.obtener_cupons),
     path("canjear_cupon", views.canjear_cupon),
     path('guardar_cambio_contrasena', views.guardar_cambio_contrasena),
-    path('crear_pago', views.crear_pago),
+    path('crear_pago', views.crear_pago, name='crear_pago'),
     path('guardar_perfil', views.guardar_perfil),
     path('gestor_plan', views.crear_gestor_plan),
     path('solicitar_recojo', views.iniciar_recojo),

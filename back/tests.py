@@ -1,6 +1,6 @@
 from django.test import TestCase, Client
 from django.urls import reverse
-from back.models import Tipo_Usuario, CodigoInvitacion, Usuario
+from back.models import Tipo_Usuario, CodigoInvitacion, Usuario , Recojo, GestorPlan, Pago, Plan
 from unittest.mock import patch
 
 
@@ -161,3 +161,64 @@ class ObtenerPuntajeUsuarioTests(TestCase):
         with self.assertRaises(Exception):
             url = reverse('obtener_puntaje_usuario', args=["cadena_invalida"])
             self.client.get(url)
+
+
+class CrearPagoTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.valid_payload = {
+            "estado": "Completado",
+            "metodo_pago": "Tarjeta",
+            "monto_pago": 150.00
+        }
+        self.invalid_payload = {
+            "estado": "",
+            "metodo_pago": "",
+            "monto_pago": None
+        }
+        self.error_payload = {
+            "estado": "Completado",
+            "metodo_pago": "Tarjeta",
+            "monto_pago": "cadena_invalida"
+        }
+        self.url = reverse('crear_pago')
+
+    def test_crear_pago_exitoso(self):
+        """Prueba que un pago válido se crea correctamente."""
+        response = self.client.post(
+            self.url,
+            data=self.valid_payload,
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertIn("pago_id", response.json())
+        self.assertEqual(response.json().get("mensaje"), "Pago creado exitosamente")
+
+    def test_crear_pago_con_datos_invalidos(self):
+        """Prueba que se devuelve un error al enviar datos incompletos."""
+        response = self.client.post(
+            self.url,
+            data=self.invalid_payload,
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("error", response.json())
+        self.assertEqual(response.json()["error"], "Faltan campos obligatorios")
+
+    def test_metodo_no_permitido(self):
+        """Prueba que el método GET no está permitido."""
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 405)
+        self.assertIn("error", response.json())
+        self.assertEqual(response.json()["error"], "Método no permitido")
+
+    def test_error_interno(self):
+        """Prueba que se manejen errores internos en el servidor."""
+        response = self.client.post(
+            self.url,
+            data=self.error_payload,
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 500)
+        self.assertIn("error", response.json())
+        self.assertTrue("monto inválido" in response.json()["error"].lower())
