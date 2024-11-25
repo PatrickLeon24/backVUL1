@@ -51,7 +51,7 @@ def inicio_sesion(request):
             else:
                 print("olaaaaa")
                 # Usuario no encontrado para el inicio de sesión de Google
-                return JsonResponse({'message': 'No hay cuenta asociada a este correo'}, status=400)
+                return JsonResponse({'message': 'No hay cuenta asociada a este correo'})
 
         # Verificar inicio de sesión tradicional con contraseña
         if user:
@@ -76,13 +76,19 @@ def registrar_usuario(request):
     if request.method == 'POST':
         datos = json.loads(request.body)
 
+        # Verificar si el correo ya está registrado
+        email = datos.get('email')
+        if Usuario.objects.filter(email=email).exists():
+            return JsonResponse({'error': 'El correo ya está registrado, ingrese uno nuevo'}, status=400)
+
         # Verificar el tipo de usuario
         tipo_usuario = Tipo_Usuario.objects.filter(id=datos.get('tipo_usuario')).first()
         if not tipo_usuario:
             return JsonResponse({'error': 'Tipo de usuario no válido'}, status=400)
 
         # Verificar la contraseña
-        if not UsuarioService.verificar_contrasena(datos.get('contrasena')):
+        contrasena = datos.get('contrasena')
+        if not contrasena or len(contrasena) < 8:
             return JsonResponse({'error': 'La contraseña debe tener 8 caracteres como mínimo'}, status=400)
 
         # Validar código de invitación si el usuario es administrador
@@ -100,8 +106,8 @@ def registrar_usuario(request):
             except CodigoInvitacion.DoesNotExist:
                 return JsonResponse({'error': 'Código de invitación inválido o ya utilizado'}, status=400)
 
-        # Crear el usuario
         UsuarioService.crear_usuario(datos, tipo_usuario)
+
         return JsonResponse({'mensaje': 'Usuario registrado exitosamente'}, status=201)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
@@ -1068,32 +1074,100 @@ def ultimas_notificaciones(request):
             if not usuario:
                 return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
 
-            # Obtener las últimas 4 notificaciones
+            # Obtener notificaciones (todas y no leídas)
             todas_notificaciones = Notificacion.objects.filter(usuario=usuario).order_by('-fecha_creacion')
-            notificaciones = todas_notificaciones[:4]
+            notificaciones_no_leidas = todas_notificaciones.filter(leido=False)
+            ultimas_notificaciones = todas_notificaciones[:4]
 
-            if not notificaciones.exists():
-                return JsonResponse({'error': 'No se encontraron notificaciones para este usuario'}, status=404)
+            # Construir la respuesta con las últimas notificaciones
+            notificaciones_data = [
+                {
+                    'id': noti.id,
+                    'mensaje': noti.mensaje,
+                    'fecha_creacion': localtime(noti.fecha_creacion).strftime('%Y-%m-%d %H:%M'),
+                    'leido': noti.leido,
+                }
+                for noti in ultimas_notificaciones
+            ]
 
-            # Construir la respuesta con las notificaciones
-            notificaciones_data = []
-            for notificacion in notificaciones:
-                notificaciones_data.append({
-                    'id': notificacion.id,
-                    'mensaje': notificacion.mensaje,
-                    'fecha_creacion': localtime(notificacion.fecha_creacion).strftime('%Y-%m-%d %H:%M'),
-                    'leido': notificacion.leido
-                })
+            # Marcar como leídas solo las que están en las últimas 4
+            todas_notificaciones.filter(id__in=[n['id'] for n in notificaciones_data]).update(leido=True)
 
-            # Marcar las notificaciones como leídas usando ids
-            notificacion_ids = [notificacion.id for notificacion in notificaciones]
-            todas_notificaciones.filter(id__in=notificacion_ids).update(leido=True)
-
-            return JsonResponse({'status': 'success', 'notificaciones': notificaciones_data}, status=200)
+            return JsonResponse({
+                'status': 'success',
+                'notificaciones': notificaciones_data,
+                'no_leidas': notificaciones_no_leidas.count(),
+            }, status=200)
         except json.JSONDecodeError:
             return JsonResponse({'error': 'JSON inválido'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+@csrf_exempt
+def obtener_notificaciones_no_leidas(request):
+    if request.method == 'POST':
+        try:
+            body = json.loads(request.body)
+            usuario_id = body.get('usuario_id')
+
+            usuario = Usuario.objects.filter(id=usuario_id).first()
+            if not usuario:
+                return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+            # Obtener notificaciones no leídas
+            notificaciones_no_leidas = Notificacion.objects.filter(usuario=usuario, leido=False).order_by('-fecha_creacion')
+
+            notificaciones_data = [
+                {
+                    'id': noti.id,
+                    'mensaje': noti.mensaje,
+                    'fecha_creacion': localtime(noti.fecha_creacion).strftime('%Y-%m-%d %H:%M'),
+                    'leido': noti.leido,
+                }
+                for noti in notificaciones_no_leidas
+            ]
+
+            return JsonResponse({
+                'status': 'success',
+                'notificaciones': notificaciones_data,
+                'no_leidas': notificaciones_no_leidas.count(),
+            }, status=200)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'JSON inválido'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+@csrf_exempt
+def marcar_notificaciones_como_leidas(request):
+    if request.method == 'POST':
+        try:
+            body = json.loads(request.body)
+            usuario_id = body.get('usuario_id')
+            notificaciones_ids = body.get('notificaciones_ids', [])
+
+            usuario = Usuario.objects.filter(id=usuario_id).first()
+            if not usuario:
+                return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+            # Marcar las notificaciones como leídas
+            if notificaciones_ids:
+                notificaciones = Notificacion.objects.filter(id__in=notificaciones_ids, usuario=usuario)
+                notificaciones.update(leido=True)
+
+            return JsonResponse({'status': 'success'}, status=200)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'JSON inválido'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
 
 @csrf_exempt
 def consultar_recojo(request):
@@ -1178,40 +1252,107 @@ def enviar_correo_recojo(usuario, estados_recojo):
 
         # Cuerpo del mensaje
         cuerpo_mensaje = f"""
-        Estimado(a) {usuario.nombre} {usuario.apellido},
-
-        Nos complace informarle que su solicitud de recojo ha sido completada con éxito. Adjunto a este correo encontrará el detalle completo del proceso de recojo en formato PDF.
-
-        A continuación, le proporcionamos la información relacionada con su recojo:
-
-        - **DNI**: {usuario.DNI}
-        - **Dirección**: {usuario.direccion}
-        - **Número de contacto**: {usuario.numero_contacto}
-
-        Además, encontrará un resumen detallado de los estados por los que ha pasado su recojo, incluidos los administradores encargados y las fechas correspondientes.
-
-        Si tiene alguna consulta o requiere asistencia adicional, no dude en contactarnos. 
-
-        Agradecemos su confianza en nuestros servicios y esperamos seguir atendiéndole de la mejor manera.
-
-        Atentamente,
-        El equipo de Verde Ulima
+        <html>
+        <head>
+            <style>
+                body {{
+                    font-family: 'Helvetica', Arial, sans-serif;
+                    background-color: #e0e0e0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 100vh;
+                    margin: 0;
+                    padding: 20px;
+                    color: #333;
+                }}
+                .container {{
+                    width: 100%;
+                    max-width: 600px;
+                    background-color: #ffffff;
+                    padding: 30px;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+                    text-align: left;
+                }}
+                h2 {{
+                    color: #003366;
+                    font-size: 24px;
+                    font-weight: 600;
+                    margin-bottom: 20px;
+                }}
+                p {{
+                    font-size: 14px;
+                    line-height: 1.6;
+                    margin-bottom: 10px;
+                }}
+                .highlight {{
+                    color: #003366;
+                    font-weight: bold;
+                }}
+                .footer {{
+                    font-size: 12px;
+                    color: #777;
+                    text-align: center;
+                    margin-top: 30px;
+                }}
+                .footer a {{
+                    color: #003366;
+                    text-decoration: none;
+                }}
+                .footer .company {{
+                    font-size: 14px;
+                    color: #333;
+                }}
+                .footer .company a {{
+                    font-weight: bold;
+                    color: #003366;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h2>Detalles de su Recojo - {usuario.nombre} {usuario.apellido}</h2>
+                <p>Estimado(a) {usuario.nombre},</p>
+                <p>Le informamos que su solicitud de recojo ha sido <span class="highlight">completada con éxito</span>.</p>
+                <p>Adjunto a este correo encontrará el <strong>detalle del proceso de recojo</strong> en formato PDF.</p>
+                <p><strong>Detalles del Recojo:</strong></p>
+                <ul>
+                    <li><strong>DNI:</strong> {usuario.DNI}</li>
+                    <li><strong>Dirección:</strong> {usuario.direccion}</li>
+                    <li><strong>Número de contacto:</strong> {usuario.numero_contacto}</li>
+                    <li><strong>Fecha de finalización:</strong> {localtime(timezone.now()).strftime('%d/%m/%Y')}</li>
+                </ul>
+                <p>Si tiene alguna consulta o requiere asistencia adicional, no dude en contactarnos.</p>
+                <p>Gracias por confiar en nuestros servicios.</p>
+                <div class="footer">
+                    <p class="company">Atentamente, <br> El equipo de <strong>VerdeUlima</strong></p>
+                    <p>Si tiene alguna pregunta, contáctenos en <a href="mailto:verdeulima@gmail.com">verdeulima@gmail.com</a></p>
+                    <p>&copy; {timezone.now().year} VerdeUlima. Todos los derechos reservados.</p>
+                    <p><a href="#">Visite nuestro sitio web</a></p>
+                </div>
+            </div>
+        </body>
+        </html>
         """
 
         # Enviar correo
         email = EmailMessage(
-            subject='Detalles de tu Recojo - Verde Ulima',
+            subject='Detalles de su Recojo - VerdeUlima',
             body=cuerpo_mensaje,
             from_email='verdeulima@gmail.com',
             to=[usuario.email]
         )
-        email.attach('boleta_recojo_inactivo.pdf', pdf_buffer.read(), 'application/pdf')
+        email.content_subtype = "html"  # Configurar para enviar como HTML
+        email.attach('detalle_recojo.pdf', pdf_buffer.read(), 'application/pdf')
         email.send()
 
         return {'status': 'success'}
 
     except Exception as e:
         return {'error': str(e)}
+
+
 
 def generar_pdf_estados_recojo(usuario, estados_recojo):
     fecha_emision = timezone.localtime(timezone.now()).strftime("%d/%m/%Y %H:%M")
