@@ -123,3 +123,41 @@ class RegistrarUsuarioTests(TestCase):
 
         self.assertEqual(response.status_code, 405)
         self.assertJSONEqual(response.content, {"error": "Método no permitido"})
+
+
+# Pruebas (Edson)
+class ObtenerPuntajeUsuarioTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+        # Crear usuarios para las pruebas
+        self.usuario_existente = Usuario.objects.create(
+            id=1, nombre="Usuario Existente", email="usuario@example.com", puntaje_acumulado=150
+        )
+        self.usuario_inexistente_id = 999  # ID que no existe en la base de datos
+
+    def test_puntaje_usuario_existente(self):
+        url = reverse('obtener_puntaje_usuario', args=[self.usuario_existente.id])
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {'puntos': 150})
+
+    def test_usuario_no_existente(self):
+        url = reverse('obtener_puntaje_usuario', args=[self.usuario_inexistente_id])
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 404)
+        self.assertJSONEqual(response.content, {'error': 'Usuario no encontrado.'})
+
+    def test_metodo_no_permitido(self):
+        url = reverse('obtener_puntaje_usuario', args=[self.usuario_existente.id])
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, 405)
+        self.assertJSONEqual(response.content, {'error': 'Método no permitido'})
+
+    def test_error_interno(self):
+        with self.assertRaises(Exception):
+            url = reverse('obtener_puntaje_usuario', args=["cadena_invalida"])
+            self.client.get(url)
