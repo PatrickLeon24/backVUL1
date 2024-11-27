@@ -1,6 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
-from back.models import Tipo_Usuario, CodigoInvitacion, Usuario , Recojo, GestorPlan, Pago, Plan, Token, Cupon, GestorCupon
+from back.models import Tipo_Usuario, CodigoInvitacion, Usuario , Token, Cupon, GestorCupon
+from back.services.gestor_cupon_service import GestorCuponService
 from unittest.mock import patch
 import json
 from django.utils import timezone
@@ -322,35 +323,69 @@ class CambiarContrasenaTests(TestCase):
 class CanjearCuponTests(TestCase):
 
     def setUp(self):
-        self.url = reverse('canjear_cupon')
+        # Crear un usuario de prueba
         self.usuario = Usuario.objects.create(
-            id = 1,
+            id=1,
             nombre="Test",
             apellido="User",
-            email="ususario@example.com", 
+            email="usuario@example.com",
             contrasena="password",
-            puntaje_acumulado = 50,
+            puntaje_acumulado=1000,
         )
 
+        # Crear un cupón de prueba
         self.cupon = Cupon.objects.create(
-            id = 1,
-            local = "ejem",
-            costo_puntos= 900,
-            disponibilidad = 10,
+            id=1,
+            local="KFC",
+            costo_puntos=900,
+            disponibilidad=5,
+            descripcion="Cupon de descuento KFC",
+            descuento=20,
+            imagen="https://KFClogo.com"
         )
 
-    def Test_usuario_noExistep(self):
-        response = self.client.post(self.url, json.dumps({'email': 'pepe@example.com'}), content_type="application/json")
-        self.assertEqual(response.status_code, 404)
-        self.assertJSONEqual(response.content, {'error': 'Usuario no encontrado'})
+    def test_usuario_no_existe(self):
+        response = GestorCuponService.canjear_cupon(usuario_id=999, cupon_id=self.cupon.id)  # Usuario inexistente
+        self.assertEqual(response, {'error': 'Usuario no encontrado'})
 
-    def Test_usuario_existente(self):
-        response = self.client.post(self.url, json.dumps({'nombre': self.usuario.nombre}), content_type="application/json")
-        self.assertEqual(response.status_code, 200)
-        self.assertJSONEqual(response.content, {'message': 'Usuario encontrado'})
+    def test_cupon_no_existe(self):
+        response = GestorCuponService.canjear_cupon(usuario_id=self.usuario.id, cupon_id=999)  # Cupón inexistente
+        self.assertEqual(response, {'error': 'Cupón no encontrado'})
 
-    def Test_cupon_existente(self):
-        response = self.client.get(self.url, json.dumps({'local': self.cupon.local}), content_type="application/json")
-        self.assertEqual(response.status_code, 404)
-        self.assertJSONEqual(response.content, {'message': 'Cupon encontrado'})
+    def test_cupon_puntos_insuficientes(self):
+        self.usuario.puntaje_acumulado = 500  # Puntos insuficientes
+        self.usuario.save()
+
+        response = GestorCuponService.canjear_cupon(usuario_id=self.usuario.id, cupon_id=self.cupon.id)
+        self.assertEqual(response, {'error': 'Puntos insuficientes para canjear el cupón'})
+
+    def test_cupon_sin_disponibilidad(self):
+        self.cupon.disponibilidad = 0  # Sin disponibilidad
+        self.cupon.save()
+
+        response = GestorCuponService.canjear_cupon(usuario_id=self.usuario.id, cupon_id=self.cupon.id)
+        self.assertEqual(response, {'error': 'El cupón ya no está disponible'})
+
+    def test_canje_exitoso(self):
+        response = GestorCuponService.canjear_cupon(usuario_id=self.usuario.id, cupon_id=self.cupon.id)
+
+        # Verificar respuesta
+        self.assertIn('mensaje', response)
+        self.assertEqual(response['mensaje'], 'Canje exitoso')
+        self.assertIn('url_qr', response)
+
+        # Verificar actualizaciones en el usuario
+        self.usuario.refresh_from_db()
+        self.assertEqual(self.usuario.puntaje_acumulado, 100)  # 1000 - 900
+
+        # Verificar actualizaciones en el cupón
+        self.cupon.refresh_from_db()
+        self.assertEqual(self.cupon.disponibilidad, 4)  # 5 - 1
+
+        # Verificar creación del gestor de cupones
+        gestor_cupon = GestorCupon.objects.get(usuario=self.usuario, cupon=self.cupon)
+        self.assertEqual(gestor_cupon.nombre_cupon, f'Cupon de {self.cupon.local} - {self.cupon.costo_puntos} puntos')
+        self.assertIsNotNone(gestor_cupon.url_qr)
+        self.assertIsNotNone(gestor_cupon.fecha_canje)
+
 
