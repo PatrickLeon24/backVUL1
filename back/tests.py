@@ -318,7 +318,7 @@ class CambiarContrasenaTests(TestCase):
 
 
 
-#-----
+#Pruebas ITalo 
 class CanjearCuponTests(TestCase):
 
     def setUp(self):
