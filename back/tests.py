@@ -1,6 +1,6 @@
 from django.test import TestCase, Client
 from django.urls import reverse
-from back.models import Tipo_Usuario, CodigoInvitacion, Usuario , Recojo, GestorPlan, Pago, Plan, Token
+from back.models import Tipo_Usuario, CodigoInvitacion, Usuario , Recojo, GestorPlan, Pago, Plan, Token, Cupon, GestorCupon
 from unittest.mock import patch
 import json
 from django.utils import timezone
@@ -315,3 +315,42 @@ class CambiarContrasenaTests(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 405)
         self.assertJSONEqual(response.content, {'error': 'Método no permitido'})
+
+
+
+#-----
+class CanjearCuponTests(TestCase):
+
+    def setUp(self):
+        self.url = reverse('canjear_cupon')
+        self.usuario = Usuario.objects.create(
+            id = 1,
+            nombre="Test",
+            apellido="User",
+            email="ususario@example.com", 
+            contrasena="password",
+            puntaje_acumulado = 50,
+        )
+
+        self.cupon = Cupon.objects.create(
+            id = 1,
+            local = "ejem",
+            costo_puntos= 900,
+            disponibilidad = 10,
+        )
+
+    def Test_usuario_noExistep(self):
+        response = self.client.post(self.url, json.dumps({'email': 'pepe@example.com'}), content_type="application/json")
+        self.assertEqual(response.status_code, 404)
+        self.assertJSONEqual(response.content, {'error': 'Usuario no encontrado'})
+
+    def Test_usuario_existente(self):
+        response = self.client.post(self.url, json.dumps({'nombre': self.usuario.nombre}), content_type="application/json")
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {'message': 'Usuario encontrado'})
+
+    def Test_cupon_existente(self):
+        response = self.client.get(self.url, json.dumps({'local': self.cupon.local}), content_type="application/json")
+        self.assertEqual(response.status_code, 404)
+        self.assertJSONEqual(response.content, {'message': 'Cupon encontrado'})
+
