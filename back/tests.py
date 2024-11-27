@@ -1,10 +1,11 @@
 from django.test import TestCase, Client
 from django.urls import reverse
-from back.models import Tipo_Usuario, CodigoInvitacion, Usuario , Token, Cupon, GestorCupon
+from back.models import Tipo_Usuario, CodigoInvitacion, Usuario , Token, Cupon, GestorCupon, Notificacion
 from back.services.gestor_cupon_service import GestorCuponService
 from unittest.mock import patch
 import json
 from django.utils import timezone
+from django.utils.timezone import now
 
 class RegistrarUsuarioTests(TestCase):
     def setUp(self):
@@ -317,8 +318,6 @@ class CambiarContrasenaTests(TestCase):
         self.assertEqual(response.status_code, 405)
         self.assertJSONEqual(response.content, {'error': 'Método no permitido'})
 
-
-
 #Pruebas ITalo 
 class CanjearCuponTests(TestCase):
 
@@ -389,3 +388,90 @@ class CanjearCuponTests(TestCase):
         self.assertIsNotNone(gestor_cupon.fecha_canje)
 
 
+# Macri
+class UltimasNotificacionesTests(TestCase):
+    def setUp(self):
+        # Configuración inicial para las pruebas
+        self.client = Client()
+
+        # Crear un usuario
+        self.usuario = Usuario.objects.create(
+            id=1, 
+            email='test@test.com', 
+            nombre='Test User', 
+            puntaje_acumulado=100
+        )
+
+        # Crear notificaciones para el usuario
+        Notificacion.objects.create(
+            usuario=self.usuario, mensaje="Notificación 1", leido=False, fecha_creacion=now()
+        )
+        Notificacion.objects.create(
+            usuario=self.usuario, mensaje="Notificación 2", leido=True, fecha_creacion=now()
+        )
+        Notificacion.objects.create(
+            usuario=self.usuario, mensaje="Notificación 3", leido=False, fecha_creacion=now()
+        )
+        Notificacion.objects.create(
+            usuario=self.usuario, mensaje="Notificación 4", leido=True, fecha_creacion=now()
+        )
+        Notificacion.objects.create(
+            usuario=self.usuario, mensaje="Notificación 5", leido=False, fecha_creacion=now()
+        )
+
+        self.url = reverse('ultimas_notificaciones') 
+
+    def test_usuario_valido_con_notificaciones(self):
+        response = self.client.post(
+            self.url,
+            {'usuario_id': self.usuario.id},
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+
+        self.assertEqual(response_data['status'], 'success')
+        self.assertIn('notificaciones', response_data)
+        self.assertEqual(len(response_data['notificaciones']), 4)  # Máximo 4 notificaciones
+
+    def test_usuario_no_encontrado(self):
+        """Caso: Usuario no encontrado."""
+        response = self.client.post(
+            self.url,
+            {'usuario_id': 999},  # Usuario inexistente
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 404)
+        response_data = response.json()
+
+        self.assertEqual(response_data['error'], 'Usuario no encontrado')
+
+    def test_metodo_no_permitido(self):
+        """Caso: Método GET no permitido."""
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 405)
+        response_data = response.json()
+
+        self.assertEqual(response_data['error'], 'Método no permitido')
+
+    def test_usuario_valido_sin_notificaciones(self):
+        """Caso: Usuario válido sin notificaciones."""
+        # Crear un usuario sin notificaciones
+        usuario_sin_notificaciones = Usuario.objects.create(
+            id=2, 
+            email='empty@test.com', 
+            nombre='No Notificaciones'
+        )
+
+        response = self.client.post(
+            self.url,
+            {'usuario_id': usuario_sin_notificaciones.id},
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+
+        # Verificar que no haya notificaciones
+        self.assertEqual(response_data['status'], 'success')
+        self.assertEqual(len(response_data['notificaciones']), 0)  # Sin notificaciones
+        self.assertEqual(response_data['no_leidas'], 0)  # Sin no leídas

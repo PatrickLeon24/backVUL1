@@ -1100,6 +1100,7 @@ def ultimas_notificaciones(request):
             # Marcar como leídas solo las que están en las últimas 4
             todas_notificaciones.filter(id__in=[n['id'] for n in notificaciones_data]).update(leido=True)
 
+            # Asegurarse de que 'no_leidas' esté siempre presente
             return JsonResponse({
                 'status': 'success',
                 'notificaciones': notificaciones_data,
