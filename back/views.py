@@ -594,7 +594,7 @@ def enviar_token(request):
         )
         
         return JsonResponse({'message': 'Token enviado al correo del usuario.'}, status=200)
-    
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
 @csrf_exempt
 def cambiar_contrasena(request):
     if request.method == 'POST':
@@ -609,6 +609,7 @@ def cambiar_contrasena(request):
             return JsonResponse({'error': resultado['error']}, status=400)
         
         return JsonResponse({'message': resultado['message']}, status=200)
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
 
 @csrf_exempt
 def canjear_cupon(request):

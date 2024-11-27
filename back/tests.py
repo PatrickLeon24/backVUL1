@@ -1,8 +1,9 @@
 from django.test import TestCase, Client
 from django.urls import reverse
-from back.models import Tipo_Usuario, CodigoInvitacion, Usuario , Recojo, GestorPlan, Pago, Plan
+from back.models import Tipo_Usuario, CodigoInvitacion, Usuario , Recojo, GestorPlan, Pago, Plan, Token
 from unittest.mock import patch
-
+import json
+from django.utils import timezone
 
 class RegistrarUsuarioTests(TestCase):
     def setUp(self):
@@ -222,3 +223,95 @@ class CrearPagoTests(TestCase):
         self.assertEqual(response.status_code, 500)
         self.assertIn("error", response.json())
         self.assertTrue("monto inválido" in response.json()["error"].lower())
+
+
+#Pruebas Patrick 
+class EnviarTokenTests(TestCase):
+    def setUp(self):
+        self.url = reverse('enviar_token')
+        self.usuario = Usuario.objects.create(
+            nombre="Test", apellido="User", email="test@example.com", contrasena="password"
+        )
+
+    def test_enviar_token_usuario_existente(self):
+        response = self.client.post(self.url, json.dumps({'correo': self.usuario.email}), content_type="application/json")
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {'message': 'Token enviado al correo del usuario.'})
+
+    def test_enviar_token_usuario_no_existente(self):
+        response = self.client.post(self.url, json.dumps({'correo': 'nonexistent@example.com'}), content_type="application/json")
+        self.assertEqual(response.status_code, 404)
+        self.assertJSONEqual(response.content, {'error': 'Usuario no encontrado.'})
+
+    def test_metodo_no_permitido(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 405)
+        self.assertJSONEqual(response.content, {'error': 'Método no permitido'})
+
+
+class CambiarContrasenaTests(TestCase):
+    def setUp(self):
+        self.url = reverse('cambiar_contrasena')
+        self.usuario = Usuario.objects.create(
+            nombre="Test", apellido="User", email="test@example.com", contrasena="password"
+        )
+        # Create a valid token for the user
+        self.token = Token.objects.create(
+            usuario=self.usuario,
+            token='1234567890',
+            activo=True,
+            fecha_creacion=timezone.now()
+        )
+
+    def test_cambiar_contrasena_con_token_valido(self):
+        response = self.client.post(self.url, json.dumps({
+            'correo': self.usuario.email,
+            'token': self.token.token,
+            'nueva_contrasena': 'newpassword123'
+        }), content_type="application/json")
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {'message': 'Contraseña cambiada exitosamente.'})
+
+        # Verify the password has been updated
+        self.usuario.refresh_from_db()
+        self.assertEqual(self.usuario.contrasena, 'newpassword123')
+
+        # Verify the token is deactivated
+        self.token.refresh_from_db()
+        self.assertFalse(self.token.activo)
+
+    def test_cambiar_contrasena_con_token_invalido(self):
+        response = self.client.post(self.url, json.dumps({
+            'correo': self.usuario.email,
+            'token': 'invalidtoken',
+            'nueva_contrasena': 'newpassword123'
+        }), content_type="application/json")
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertJSONEqual(response.content, {'error': 'Token no válido o caducado.'})
+
+    def test_cambiar_contrasena_usuario_no_existente(self):
+        response = self.client.post(self.url, json.dumps({
+            'correo': 'nonexistent@example.com',
+            'token': self.token.token,
+            'nueva_contrasena': 'newpassword123'
+        }), content_type="application/json")
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertJSONEqual(response.content, {'error': 'Usuario no encontrado.'})
+
+    def test_cambiar_contrasena_contrasena_insegura(self):
+        response = self.client.post(self.url, json.dumps({
+            'correo': self.usuario.email,
+            'token': self.token.token,
+            'nueva_contrasena': 'short'
+        }), content_type="application/json")
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertJSONEqual(response.content, {'error': 'La contraseña nueva no cumple los requisitos de seguridad.'})
+
+    def test_metodo_no_permitido(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 405)
+        self.assertJSONEqual(response.content, {'error': 'Método no permitido'})
