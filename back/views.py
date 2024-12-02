@@ -456,7 +456,7 @@ def obtener_recojos(request, administrador_id):
             for usuario in usuarios_data:
                 usuario_id = usuario['id']
                 recojo_trayectoria_id = usuario['gestorplan__recojo__recojo_trayectoria__id']
-                recojo_estado = int(usuario['gestorplan__recojo__recojo_trayectoria__trayectoria__estado'])  # Convertir a entero
+                recojo_estado = int(usuario['gestorplan__recojo__recojo_trayectoria__trayectoria__estado'])
                 administrador_asignado_id = usuario['gestorplan__recojo__recojo_trayectoria__administrador__id']
 
                 # Si el usuario ya tiene un recojo con este ID, comparar cuál tiene el último estado
@@ -470,7 +470,7 @@ def obtener_recojos(request, administrador_id):
             # Visibilidad del estado del recojo
             usuarios_final = []
             for usuario in usuarios_con_ultimo_recojo.values():
-                recojo_estado = int(usuario['gestorplan__recojo__recojo_trayectoria__trayectoria__estado'])  # Convertir a entero
+                recojo_estado = int(usuario['gestorplan__recojo__recojo_trayectoria__trayectoria__estado'])
                 administrador_asignado_id = usuario['gestorplan__recojo__recojo_trayectoria__administrador__id']
 
                 # Si el estado es 1, el recojo es visible para todos los administradores
@@ -595,6 +595,7 @@ def enviar_token(request):
         
         return JsonResponse({'message': 'Token enviado al correo del usuario.'}, status=200)
     return JsonResponse({'error': 'Método no permitido'}, status=405)
+
 @csrf_exempt
 def cambiar_contrasena(request):
     if request.method == 'POST':
@@ -646,7 +647,6 @@ def obtener_recojos_por_administrador(request, usuario_id):
             return JsonResponse(recojos_list, safe=False, status=200)
 
         except Exception as e:
-            # Manejo de errores
             return JsonResponse({'error': f'Error al obtener los recojos desactivados: {str(e)}'}, status=500)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
@@ -740,10 +740,8 @@ def obtener_recojosus(request, usuario_id):
 @csrf_exempt
 def obtener_historial_cupones(request, usuario_id):
     try:
-        # Obtiene los cupones canjeados por el usuario dado
         cupones_canjeados = GestorCupon.objects.filter(usuario_id=usuario_id)
 
-        # Construye una lista de los cupones canjeados con los datos necesarios
         historial = []
         for cupon in cupones_canjeados:
             # Si el campo cupon está vacío
@@ -759,14 +757,12 @@ def obtener_historial_cupones(request, usuario_id):
                 'url_qr': cupon.url_qr,
             })
 
-        # Retorna el historial en formato JSON
         return JsonResponse(historial, safe=False)
 
     except Exception as e:
-        # Manejo de errores en caso de que ocurra un problema
+
         return JsonResponse({'error': str(e)}, status=500)
 
-    
 @csrf_exempt
 def verificar_recojo_activo(request, usuario_id):
     if request.method == 'POST':
@@ -799,7 +795,7 @@ def verificar_recojo_activo(request, usuario_id):
 @csrf_exempt
 def listar_pagos_no_validados(request):
     # Filtrar solo los pagos no validados
-    pagos_no_validados = GestorPlan.objects.filter(validado=False).select_related('pago')  # Usar select_related para  la consulta si 'pago' es una FK
+    pagos_no_validados = GestorPlan.objects.filter(validado=False).select_related('pago')
 
     data = [
         {
@@ -807,8 +803,8 @@ def listar_pagos_no_validados(request):
             'usuarioid': pago.usuario.id,
             'usuario': str(pago.usuario),  # Usar el método __str__ de Usuario
             'plan': str(pago.plan),        # Usar el método __str__ de Plan
-            'metodo_pago': str(pago.pago.metodo_pago),  # Asegúrate de acceder al campo correcto
-            'monto_pago': pago.pago.monto_pago  # Incluir el monto de pago desde la relación
+            'metodo_pago': str(pago.pago.metodo_pago),
+            'monto_pago': pago.pago.monto_pago  # monto de pago 
         }
         for pago in pagos_no_validados
     ]
@@ -832,10 +828,8 @@ def validar_pago(request, pago_id):
 
 # Función para generar un PDF con estilo de voucher
 def generar_pdf_voucher(usuario):
-    # Datos para el contexto
     fecha_emision = localtime(now()).strftime("%d/%m/%Y %H:%M")
 
-    # HTML directamente en la función
     html_string = f"""
     <!DOCTYPE html>
     <html lang="es">
@@ -931,13 +925,10 @@ def generar_pdf_voucher(usuario):
     </html>
     """
 
-    # Crear un buffer para almacenar el PDF
     buffer = BytesIO()
 
-    # Convertir el HTML a PDF usando xhtml2pdf
     pisa_status = pisa.CreatePDF(html_string, dest=buffer)
 
-    # Asegúrate de que la conversión fue exitosa
     if pisa_status.err:
         return None
 
@@ -960,7 +951,6 @@ def enviar_PDF(request):
         if not usuarios_data:
             return JsonResponse({'message': 'No se encontraron usuarios para este ID.'}, status=404)
 
-        # Tomar el primer usuario (si hay más de un usuario, deberías decidir cuál escoger)
         usuario = usuarios_data[0]
 
         # Generar el PDF del voucher
@@ -1055,13 +1045,12 @@ def enviar_PDF(request):
         # Crear el correo con el contenido HTML
         email = EmailMessage(
             'Comprobante de Pago',
-            strip_tags(html_content),  # Versión de texto sin formato como respaldo
-            'verdeulima@gmail.com',  # Cambia esto por tu dirección de correo
+            strip_tags(html_content), 
+            'verdeulima@gmail.com', 
             [usuario['email']],
         )
         email.attach(f'voucher_{usuario["id"]}.pdf', pdf_buffer.read(), 'application/pdf')
 
-        # Establecer el contenido del correo como HTML
         email.content_subtype = "html"
         email.body = html_content
 
@@ -1086,7 +1075,6 @@ def ultimas_notificaciones(request):
             notificaciones_no_leidas = todas_notificaciones.filter(leido=False)
             ultimas_notificaciones = todas_notificaciones[:4]
 
-            # Construir la respuesta con las últimas notificaciones
             notificaciones_data = [
                 {
                     'id': noti.id,
@@ -1097,10 +1085,8 @@ def ultimas_notificaciones(request):
                 for noti in ultimas_notificaciones
             ]
 
-            # Marcar como leídas solo las que están en las últimas 4
             todas_notificaciones.filter(id__in=[n['id'] for n in notificaciones_data]).update(leido=True)
 
-            # Asegurarse de que 'no_leidas' esté siempre presente
             return JsonResponse({
                 'status': 'success',
                 'notificaciones': notificaciones_data,

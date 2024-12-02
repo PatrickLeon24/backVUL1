@@ -17,14 +17,11 @@ class PagoService:
     @staticmethod
     def validar_pago(pago_id):
         try:
-            # Buscar el pago en GestorPlan
             gestor_plan = GestorPlan.objects.get(id=pago_id)
             
-            # Marcar el pago como validado
             gestor_plan.validado = True
             gestor_plan.save()
 
-            # Notificar al usuario
             usuario = gestor_plan.usuario
             Notificacion.objects.create(
                 usuario=usuario,
