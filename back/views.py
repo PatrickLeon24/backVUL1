@@ -512,6 +512,7 @@ def consultar_recojoR(request):
             body = json.loads(request.body)
             recojo_id = body.get('recojo_id')
             admin_id = body.get('admin_id')
+            print(recojo_id)
 
             # Validar administrador
             administrador = Usuario.objects.filter(id=admin_id).first()
@@ -1073,7 +1074,7 @@ def ultimas_notificaciones(request):
             # Obtener notificaciones (todas y no leídas)
             todas_notificaciones = Notificacion.objects.filter(usuario=usuario).order_by('-fecha_creacion')
             notificaciones_no_leidas = todas_notificaciones.filter(leido=False)
-            ultimas_notificaciones = todas_notificaciones[:4]
+            ultimas_notificaciones = todas_notificaciones[:6]
 
             notificaciones_data = [
                 {
@@ -1135,33 +1136,6 @@ def obtener_notificaciones_no_leidas(request):
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
-
-@csrf_exempt
-def marcar_notificaciones_como_leidas(request):
-    if request.method == 'POST':
-        try:
-            body = json.loads(request.body)
-            usuario_id = body.get('usuario_id')
-            notificaciones_ids = body.get('notificaciones_ids', [])
-
-            usuario = Usuario.objects.filter(id=usuario_id).first()
-            if not usuario:
-                return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
-
-            # Marcar las notificaciones como leídas
-            if notificaciones_ids:
-                notificaciones = Notificacion.objects.filter(id__in=notificaciones_ids, usuario=usuario)
-                notificaciones.update(leido=True)
-
-            return JsonResponse({'status': 'success'}, status=200)
-
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'JSON inválido'}, status=400)
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-
-    return JsonResponse({'error': 'Método no permitido'}, status=405)
-
 
 @csrf_exempt
 def consultar_recojo(request):
