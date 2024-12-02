@@ -193,31 +193,37 @@ def guardar_cambio_contrasena(request):
 @csrf_exempt
 def crear_pago(request):
     if request.method == 'POST':
-        # Obtener los datos de la solicitud
-        data = json.loads(request.body)
-        estado = data.get('estado')
-        metodo_pago = data.get('metodo_pago')
-        monto_pago = data.get('monto_pago')
-
-        print(estado, metodo_pago, monto_pago)
-
-        # Validar que los campos no estén vacíos
-        if not estado or not metodo_pago or not monto_pago:
-            return JsonResponse({'error': 'Faltan campos obligatorios'}, status=400)
-
         try:
+            # Obtener los datos de la solicitud
+            data = json.loads(request.body)
+            estado = data.get('estado')
+            metodo_pago = data.get('metodo_pago')
+            monto_pago = data.get('monto_pago')
+
+            # Validar que los campos no estén vacíos
+            if not estado or not metodo_pago or monto_pago is None:
+                return JsonResponse({'error': 'Faltan campos obligatorios'}, status=400)
+
+            # Simula un error interno para datos inválidos
+            if isinstance(monto_pago, str):
+                raise ValueError("Monto inválido: debe ser un número.")
+
+            # Crear el pago (ejemplo con lógica simulada)
             fecha_pago = timezone.localtime(timezone.now())
-            
-            # Crear el pago utilizando el servicio
             nuevo_pago = PagoService.crear_pago(estado, metodo_pago, fecha_pago, monto_pago)
+            
             return JsonResponse({
                 'mensaje': 'Pago creado exitosamente',
                 'pago_id': nuevo_pago.id
             }, status=201)
-        except Exception as e:
+
+        except ValueError as e:
             return JsonResponse({'error': str(e)}, status=500)
+        except Exception as e:
+            return JsonResponse({'error': 'Error interno del servidor'}, status=500)
 
     return JsonResponse({'error': 'Método no permitido'}, status=405)
+
 
 @csrf_exempt
 def guardar_perfil(request):
@@ -588,7 +594,7 @@ def enviar_token(request):
         )
         
         return JsonResponse({'message': 'Token enviado al correo del usuario.'}, status=200)
-    
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
 @csrf_exempt
 def cambiar_contrasena(request):
     if request.method == 'POST':
@@ -603,6 +609,7 @@ def cambiar_contrasena(request):
             return JsonResponse({'error': resultado['error']}, status=400)
         
         return JsonResponse({'message': resultado['message']}, status=200)
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
 
 @csrf_exempt
 def canjear_cupon(request):
@@ -1093,6 +1100,7 @@ def ultimas_notificaciones(request):
             # Marcar como leídas solo las que están en las últimas 4
             todas_notificaciones.filter(id__in=[n['id'] for n in notificaciones_data]).update(leido=True)
 
+            # Asegurarse de que 'no_leidas' esté siempre presente
             return JsonResponse({
                 'status': 'success',
                 'notificaciones': notificaciones_data,
